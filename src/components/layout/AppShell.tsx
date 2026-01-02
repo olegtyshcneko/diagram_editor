@@ -1,6 +1,7 @@
 import { CanvasContainer } from '@/components/canvas/CanvasContainer';
 import { StatusBar } from './StatusBar';
 import { Toolbar } from '@/components/toolbar/Toolbar';
+import { PropertyPanel } from '@/components/panels/PropertyPanel';
 
 export function AppShell() {
   return (
@@ -20,12 +21,7 @@ export function AppShell() {
         </main>
 
         {/* Property Panel */}
-        <aside className="w-64 bg-white border-l border-gray-200 p-4">
-          <h2 className="font-semibold text-gray-800 mb-4">Properties</h2>
-          <p className="text-sm text-gray-500">
-            Select an element to view its properties
-          </p>
-        </aside>
+        <PropertyPanel />
       </div>
 
       {/* Status Bar */}

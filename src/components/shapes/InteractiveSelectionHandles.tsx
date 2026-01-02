@@ -9,11 +9,23 @@ interface InteractiveSelectionHandlesProps {
   shape: Shape;
 }
 
-const { HANDLE_SIZE, ROTATION_HANDLE_OFFSET } = MANIPULATION;
+const {
+  HANDLE_SIZE,
+  HANDLE_SIZE_SMALL,
+  HANDLE_SIZE_TINY,
+  ROTATION_HANDLE_OFFSET,
+  HIDE_EDGE_HANDLES_THRESHOLD,
+  SMALL_HANDLE_THRESHOLD,
+  TINY_HANDLE_THRESHOLD,
+} = MANIPULATION;
+
+// Edge handle types that can be hidden for small shapes
+const HORIZONTAL_EDGE_HANDLES = ['n', 's'];
+const VERTICAL_EDGE_HANDLES = ['e', 'w'];
 
 /**
  * Interactive selection handles for resizing and rotating shapes.
- * Replaces the static SelectionHandles component.
+ * Adapts handle visibility and size based on shape dimensions.
  */
 export const InteractiveSelectionHandles = memo(function InteractiveSelectionHandles({
   shape,
@@ -32,17 +44,46 @@ export const InteractiveSelectionHandles = memo(function InteractiveSelectionHan
     height: shape.height,
   }), [shape.x, shape.y, shape.width, shape.height]);
 
-  const handles = useMemo(
-    () => getHandlePositions(bounds),
-    [bounds]
-  );
+  // Determine which handles to show and their size based on shape dimensions
+  const { handleSize, visibleHandles, rotationOffset } = useMemo(() => {
+    const minDimension = Math.min(bounds.width, bounds.height);
+    const allHandles = getHandlePositions(bounds);
+
+    // Determine handle size based on smallest dimension
+    let size = HANDLE_SIZE;
+    if (minDimension < TINY_HANDLE_THRESHOLD) {
+      size = HANDLE_SIZE_TINY;
+    } else if (minDimension < SMALL_HANDLE_THRESHOLD) {
+      size = HANDLE_SIZE_SMALL;
+    }
+
+    // Filter handles based on shape size
+    let filtered = allHandles;
+    if (bounds.width < HIDE_EDGE_HANDLES_THRESHOLD) {
+      // Hide horizontal edge handles (n, s) when width is small
+      filtered = filtered.filter(h => !HORIZONTAL_EDGE_HANDLES.includes(h.type));
+    }
+    if (bounds.height < HIDE_EDGE_HANDLES_THRESHOLD) {
+      // Hide vertical edge handles (e, w) when height is small
+      filtered = filtered.filter(h => !VERTICAL_EDGE_HANDLES.includes(h.type));
+    }
+
+    // Scale rotation offset for smaller shapes (min 15px)
+    const rotOffset = Math.max(15, Math.min(ROTATION_HANDLE_OFFSET, bounds.height * 0.5));
+
+    return {
+      handleSize: size,
+      visibleHandles: filtered,
+      rotationOffset: rotOffset,
+    };
+  }, [bounds]);
 
   const rotationHandle = useMemo(
-    () => getRotationHandlePosition(bounds, ROTATION_HANDLE_OFFSET),
-    [bounds]
+    () => getRotationHandlePosition(bounds, rotationOffset),
+    [bounds, rotationOffset]
   );
 
-  const halfHandle = HANDLE_SIZE / 2;
+  const halfHandle = handleSize / 2;
 
   return (
     <g className="selection-handles">
@@ -59,7 +100,7 @@ export const InteractiveSelectionHandles = memo(function InteractiveSelectionHan
         pointerEvents="none"
       />
 
-      {/* Rotation handle connector line */}
+      {/* Rotation handle connector line and handle */}
       <line
         x1={bounds.x + bounds.width / 2}
         y1={bounds.y}
@@ -69,12 +110,10 @@ export const InteractiveSelectionHandles = memo(function InteractiveSelectionHan
         strokeWidth={1}
         pointerEvents="none"
       />
-
-      {/* Rotation handle */}
       <circle
         cx={rotationHandle.x}
         cy={rotationHandle.y}
-        r={HANDLE_SIZE / 2 + 1}
+        r={halfHandle + 1}
         fill={isManipulating && manipulationType === 'rotate' ? COLORS.SELECTION : 'white'}
         stroke={COLORS.SELECTION}
         strokeWidth={2}
@@ -82,14 +121,14 @@ export const InteractiveSelectionHandles = memo(function InteractiveSelectionHan
         onMouseDown={onRotationHandleMouseDown}
       />
 
-      {/* Resize handles */}
-      {handles.map((handle) => (
+      {/* Resize handles - filtered based on shape size */}
+      {visibleHandles.map((handle) => (
         <rect
           key={handle.type}
           x={handle.x - halfHandle}
           y={handle.y - halfHandle}
-          width={HANDLE_SIZE}
-          height={HANDLE_SIZE}
+          width={handleSize}
+          height={handleSize}
           fill={
             isManipulating && manipulationType === 'resize'
               ? COLORS.SELECTION

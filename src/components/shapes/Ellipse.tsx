@@ -1,5 +1,7 @@
 import { memo } from 'react';
 import type { Shape } from '@/types/shapes';
+import { DEFAULT_TEXT_STYLE } from '@/types/shapes';
+import { ShapeText } from './ShapeText';
 
 interface EllipseProps {
   shape: Shape;
@@ -21,6 +23,8 @@ export const Ellipse = memo(function Ellipse({
     stroke,
     strokeWidth,
     strokeStyle,
+    text,
+    textStyle = DEFAULT_TEXT_STYLE,
   } = shape;
 
   // Calculate center and radii from bounding box
@@ -52,6 +56,11 @@ export const Ellipse = memo(function Ellipse({
         strokeWidth={strokeWidth}
         strokeDasharray={strokeDasharray}
         onMouseDown={onMouseDown}
+      />
+      <ShapeText
+        text={text}
+        textStyle={textStyle}
+        shapeBounds={{ x, y, width, height }}
       />
     </g>
   );

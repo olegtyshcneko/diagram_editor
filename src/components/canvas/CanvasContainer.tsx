@@ -1,10 +1,14 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { Canvas } from './Canvas';
-import { useUIStore } from '@/stores/uiStore';
+import { TextEditOverlay } from './TextEditOverlay';
+import { useViewportStore } from '@/stores/viewportStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { useShapeCreation } from '@/hooks/useShapeCreation';
 import { useSelection } from '@/hooks/useSelection';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useConnectionCreation } from '@/hooks/useConnectionCreation';
+import { useTextEditing } from '@/hooks/useTextEditing';
 import { screenToCanvas } from '@/lib/geometry/viewport';
 import { CANVAS_DEFAULTS } from '@/lib/constants';
 
@@ -17,27 +21,33 @@ export function CanvasContainer() {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerSize = useContainerSize(containerRef);
 
-  const {
-    viewport,
-    isPanning,
-    spacebarHeld,
-    activeTool,
-    manipulationState,
-    zoomAtPoint,
-    startPan,
-    updatePan,
-    endPan,
-    setSpacebarHeld,
-    setCursorCanvasPosition,
-    resetZoom,
-    resetView,
-  } = useUIStore();
+  // Viewport store
+  const viewport = useViewportStore((s) => s.viewport);
+  const isPanning = useViewportStore((s) => s.isPanning);
+  const spacebarHeld = useViewportStore((s) => s.spacebarHeld);
+  const zoomAtPoint = useViewportStore((s) => s.zoomAtPoint);
+  const startPan = useViewportStore((s) => s.startPan);
+  const updatePan = useViewportStore((s) => s.updatePan);
+  const endPan = useViewportStore((s) => s.endPan);
+  const setSpacebarHeld = useViewportStore((s) => s.setSpacebarHeld);
+  const resetZoom = useViewportStore((s) => s.resetZoom);
+  const resetView = useViewportStore((s) => s.resetView);
 
-  // Initialize hooks for shape creation, selection, and keyboard shortcuts
+  // Interaction store
+  const activeTool = useInteractionStore((s) => s.activeTool);
+  const manipulationState = useInteractionStore((s) => s.manipulationState);
+  const setCursorCanvasPosition = useInteractionStore((s) => s.setCursorCanvasPosition);
+
+  // Shape hover tracking for connection anchors
+  const [hoveredShapeId, setHoveredShapeId] = useState<string | null>(null);
+
+  // Initialize hooks for shape creation, selection, connections, and keyboard shortcuts
   useKeyboardShortcuts();
 
   const shapeCreation = useShapeCreation({ containerSize });
   const selection = useSelection({ containerSize });
+  const connectionCreation = useConnectionCreation({ containerRef });
+  const textEditing = useTextEditing();
 
   // Wheel handler for zoom
   const handleWheel = useCallback(
@@ -265,7 +275,9 @@ export function CanvasContainer() {
     if (isPanning) return 'grabbing';
     if (spacebarHeld) return 'grab';
     if (shapeCreation.isCreating) return 'crosshair';
+    if (connectionCreation.isCreatingConnection) return 'crosshair';
     if (activeTool === 'rectangle' || activeTool === 'ellipse') return 'crosshair';
+    if (activeTool === 'connection') return 'crosshair';
     return 'default';
   };
 
@@ -285,6 +297,18 @@ export function CanvasContainer() {
           ref={svgRef}
           viewport={viewport}
           containerSize={containerSize}
+          hoveredShapeId={hoveredShapeId}
+          onAnchorMouseDown={connectionCreation.handleAnchorMouseDown}
+          onShapeHover={setHoveredShapeId}
+          onShapeDoubleClick={textEditing.handleShapeDoubleClick}
+        />
+      )}
+
+      {/* Text editing overlay (HTML positioned over SVG) */}
+      {textEditing.editingShape && (
+        <TextEditOverlay
+          shape={textEditing.editingShape}
+          viewport={viewport}
         />
       )}
     </div>

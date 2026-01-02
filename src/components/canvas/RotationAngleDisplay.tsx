@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { useUIStore } from '@/stores/uiStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import { useDiagramStore } from '@/stores/diagramStore';
 
 /**
@@ -7,7 +7,7 @@ import { useDiagramStore } from '@/stores/diagramStore';
  * Shows a tooltip-like display near the shape being rotated.
  */
 export const RotationAngleDisplay = memo(function RotationAngleDisplay() {
-  const manipulationState = useUIStore((s) => s.manipulationState);
+  const manipulationState = useInteractionStore((s) => s.manipulationState);
   const shapes = useDiagramStore((s) => s.shapes);
 
   // Only show during rotation

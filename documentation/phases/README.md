@@ -14,8 +14,8 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P1 | Canvas Foundation | **Completed** | [requirements_p1.md](./requirements_p1.md) | [spec_p1.md](./spec_p1.md) | [todo_p1.md](./todo_p1.md) |
 | P2 | Basic Shapes | **Completed** | [requirements_p2.md](./requirements_p2.md) | [spec_p2.md](./spec_p2.md) | [todo_p2.md](./todo_p2.md) |
 | P3 | Shape Manipulation | **Completed** | [requirements_p3.md](./requirements_p3.md) | [spec_p3.md](./spec_p3.md) | [todo_p3.md](./todo_p3.md) |
-| P4 | Styling & Properties | Not Started | [requirements_p4.md](./requirements_p4.md) | [spec_p4.md](./spec_p4.md) | - |
-| P5 | Text & Connections | Not Started | [requirements_p5.md](./requirements_p5.md) | [spec_p5.md](./spec_p5.md) | - |
+| P4 | Styling & Properties | **Completed** | [requirements_p4.md](./requirements_p4.md) | [spec_p4.md](./spec_p4.md) | [todo_p4.md](./todo_p4.md) |
+| P5 | Text & Connections | **Completed** | [requirements_p5.md](./requirements_p5.md) | [spec_p5.md](./spec_p5.md) | [todo_p5.md](./todo_p5.md) |
 | P6 | Multi-Selection | Not Started | [requirements_p6.md](./requirements_p6.md) | [spec_p6.md](./spec_p6.md) | - |
 | P7 | History & Grid | Not Started | [requirements_p7.md](./requirements_p7.md) | [spec_p7.md](./spec_p7.md) | - |
 | P8 | Organization | Not Started | [requirements_p8.md](./requirements_p8.md) | [spec_p8.md](./spec_p8.md) | - |
@@ -83,3 +83,30 @@ Save/load JSON, export to PNG/SVG, import from files.
 - Delete/Backspace removes selected shapes
 - Draw-through: shape tools draw on top of existing shapes (Illustrator/Figma behavior)
 - 45 unit tests for geometry utilities
+
+### P4 - Completed
+- Store refactoring: Split uiStore into viewportStore, interactionStore, preferencesStore
+- localStorage persistence for user preferences (recent colors, panel state)
+- Property panel with collapsible state
+- Position, dimensions, rotation editing
+- Fill color picker with presets, recent colors, and opacity
+- Stroke color, width presets, custom width, and style (solid/dashed/dotted)
+- No Stroke option: width and style controls disabled when stroke is transparent
+- Corner radius for rectangles (slider + input)
+- Mixed value support for multi-selection
+- Integer rounding for all position, size, and rotation values
+- Adaptive selection handles: hide edge handles for small shapes, scale handle size (8px → 6px → 4px)
+- 16 new files created, 1 deleted (uiStore.ts)
+
+### P5 - Completed
+- Text editing: Double-click shapes to edit text, multi-line support
+- Text styling: Font family/size, bold/italic/underline, color, alignment
+- Connections: Straight-line connections between shape anchor points
+- Connection tool (C key) in toolbar
+- Anchor points show on shape hover when using connection tool
+- Connection styling: Stroke color/width, arrow types (none, arrow, open-arrow)
+- Connection selection and deletion
+- Property panel sections for text and connection styling
+- Keyboard shortcuts updated: C for connection tool, Escape cancels connection/text editing
+- Delete/Backspace works for connections
+- 17 new files created, 14 files modified

@@ -2,7 +2,8 @@ import { useCallback, useRef } from 'react';
 import type { Point, Bounds } from '@/types/common';
 import type { HandleType } from '@/types/interaction';
 import { useDiagramStore } from '@/stores/diagramStore';
-import { useUIStore } from '@/stores/uiStore';
+import { useViewportStore } from '@/stores/viewportStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import { calculateResize } from '@/lib/geometry/resize';
 import { SHAPE_DEFAULTS } from '@/lib/constants';
 
@@ -16,9 +17,9 @@ interface UseResizeOptions {
  */
 export function useShapeResize({ shapeId }: UseResizeOptions) {
   const updateShape = useDiagramStore((s) => s.updateShape);
-  const viewport = useUIStore((s) => s.viewport);
-  const startManipulation = useUIStore((s) => s.startManipulation);
-  const endManipulation = useUIStore((s) => s.endManipulation);
+  const viewport = useViewportStore((s) => s.viewport);
+  const startManipulation = useInteractionStore((s) => s.startManipulation);
+  const endManipulation = useInteractionStore((s) => s.endManipulation);
 
   // Refs to store start state
   const startPointRef = useRef<Point | null>(null);
@@ -83,10 +84,10 @@ export function useShapeResize({ shapeId }: UseResizeOptions) {
     );
 
     updateShape(shapeId, {
-      x: newBounds.x,
-      y: newBounds.y,
-      width: newBounds.width,
-      height: newBounds.height,
+      x: Math.round(newBounds.x),
+      y: Math.round(newBounds.y),
+      width: Math.round(newBounds.width),
+      height: Math.round(newBounds.height),
     });
   }, [shapeId, viewport.zoom, updateShape]);
 

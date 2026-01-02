@@ -1,18 +1,24 @@
 import { useEffect } from 'react';
-import { useUIStore } from '@/stores/uiStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { KEYBOARD } from '@/lib/constants';
 
 export function useKeyboardShortcuts() {
-  const setActiveTool = useUIStore((s) => s.setActiveTool);
-  const cancelCreation = useUIStore((s) => s.cancelCreation);
-  const creationState = useUIStore((s) => s.creationState);
-  const manipulationState = useUIStore((s) => s.manipulationState);
+  const setActiveTool = useInteractionStore((s) => s.setActiveTool);
+  const cancelCreation = useInteractionStore((s) => s.cancelCreation);
+  const creationState = useInteractionStore((s) => s.creationState);
+  const manipulationState = useInteractionStore((s) => s.manipulationState);
+  const connectionCreationState = useInteractionStore((s) => s.connectionCreationState);
+  const endConnectionCreation = useInteractionStore((s) => s.endConnectionCreation);
+  const editingTextShapeId = useInteractionStore((s) => s.editingTextShapeId);
+  const setEditingTextShapeId = useInteractionStore((s) => s.setEditingTextShapeId);
 
   const selectedShapeIds = useDiagramStore((s) => s.selectedShapeIds);
+  const selectedConnectionIds = useDiagramStore((s) => s.selectedConnectionIds);
   const shapes = useDiagramStore((s) => s.shapes);
   const updateShape = useDiagramStore((s) => s.updateShape);
   const deleteSelectedShapes = useDiagramStore((s) => s.deleteSelectedShapes);
+  const deleteSelectedConnections = useDiagramStore((s) => s.deleteSelectedConnections);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -28,6 +34,9 @@ export function useKeyboardShortcuts() {
       const isDuringManipulation = manipulationState !== null;
 
       const hasSelection = selectedShapeIds.length > 0;
+      const hasConnectionSelection = selectedConnectionIds.length > 0;
+      const isEditingText = editingTextShapeId !== null;
+      const isCreatingConnection = connectionCreationState !== null;
 
       // Arrow key movement
       if (hasSelection && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -66,15 +75,20 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      // Delete/Backspace
-      if (hasSelection && (e.key === 'Delete' || e.key === 'Backspace')) {
+      // Delete/Backspace - shapes or connections
+      if ((hasSelection || hasConnectionSelection) && (e.key === 'Delete' || e.key === 'Backspace')) {
         e.preventDefault();
-        deleteSelectedShapes();
+        if (hasConnectionSelection) {
+          deleteSelectedConnections();
+        }
+        if (hasSelection) {
+          deleteSelectedShapes();
+        }
         return;
       }
 
-      // Tool shortcuts (only when not manipulating)
-      if (!isDuringManipulation) {
+      // Tool shortcuts (only when not manipulating and not editing text)
+      if (!isDuringManipulation && !isEditingText) {
         switch (e.key.toLowerCase()) {
           case 'v':
             setActiveTool('select');
@@ -85,14 +99,26 @@ export function useKeyboardShortcuts() {
           case 'e':
             setActiveTool('ellipse');
             break;
+          case 'c':
+            setActiveTool('connection');
+            break;
           case 'escape':
-            if (creationState) {
+            // Cancel any in-progress operation
+            if (isCreatingConnection) {
+              endConnectionCreation();
+            } else if (creationState) {
               cancelCreation();
             } else {
               setActiveTool('select');
             }
             break;
         }
+      }
+
+      // Escape while editing text exits editing mode
+      if (isEditingText && e.key === 'Escape') {
+        e.preventDefault();
+        setEditingTextShapeId(null);
       }
     };
 
@@ -103,9 +129,15 @@ export function useKeyboardShortcuts() {
     cancelCreation,
     creationState,
     manipulationState,
+    connectionCreationState,
+    endConnectionCreation,
+    editingTextShapeId,
+    setEditingTextShapeId,
     selectedShapeIds,
+    selectedConnectionIds,
     shapes,
     updateShape,
     deleteSelectedShapes,
+    deleteSelectedConnections,
   ]);
 }

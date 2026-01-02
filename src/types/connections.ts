@@ -45,6 +45,14 @@ export interface Connection {
   labelPosition?: number; // 0-1 along path
 }
 
+// Connection creation state (during drag)
+export interface ConnectionCreationState {
+  sourceShapeId: string;
+  sourceAnchor: AnchorPosition;
+  sourcePoint: Point;
+  currentPoint: Point;
+}
+
 // Default connection values
 export const DEFAULT_CONNECTION: Omit<Connection, 'id' | 'sourceShapeId' | 'sourceAnchor'> = {
   targetShapeId: null,

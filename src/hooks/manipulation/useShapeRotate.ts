@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react';
 import type { Point, Bounds } from '@/types/common';
 import { useDiagramStore } from '@/stores/diagramStore';
-import { useUIStore } from '@/stores/uiStore';
+import { useViewportStore } from '@/stores/viewportStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import {
   calculateAngle,
   snapAngle,
@@ -20,9 +21,9 @@ interface UseRotateOptions {
  */
 export function useShapeRotate({ shapeId }: UseRotateOptions) {
   const updateShape = useDiagramStore((s) => s.updateShape);
-  const viewport = useUIStore((s) => s.viewport);
-  const startManipulation = useUIStore((s) => s.startManipulation);
-  const endManipulation = useUIStore((s) => s.endManipulation);
+  const viewport = useViewportStore((s) => s.viewport);
+  const startManipulation = useInteractionStore((s) => s.startManipulation);
+  const endManipulation = useInteractionStore((s) => s.endManipulation);
 
   // Refs to store start state
   const centerRef = useRef<Point | null>(null);
@@ -87,7 +88,7 @@ export function useShapeRotate({ shapeId }: UseRotateOptions) {
       newRotation = snapAngle(newRotation, MANIPULATION.ROTATION_SNAP_DEGREES);
     }
 
-    updateShape(shapeId, { rotation: newRotation });
+    updateShape(shapeId, { rotation: Math.round(newRotation) });
   }, [shapeId, viewport, updateShape]);
 
   /**

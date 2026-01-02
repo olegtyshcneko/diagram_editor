@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react';
 import type { Point, Bounds } from '@/types/common';
 import { useDiagramStore } from '@/stores/diagramStore';
-import { useUIStore } from '@/stores/uiStore';
+import { useViewportStore } from '@/stores/viewportStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import { constrainToAxis } from '@/lib/geometry/manipulation';
 
 interface UseMoveOptions {
@@ -14,9 +15,9 @@ interface UseMoveOptions {
  */
 export function useShapeMove({ shapeId }: UseMoveOptions) {
   const updateShape = useDiagramStore((s) => s.updateShape);
-  const viewport = useUIStore((s) => s.viewport);
-  const startManipulation = useUIStore((s) => s.startManipulation);
-  const endManipulation = useUIStore((s) => s.endManipulation);
+  const viewport = useViewportStore((s) => s.viewport);
+  const startManipulation = useInteractionStore((s) => s.startManipulation);
+  const endManipulation = useInteractionStore((s) => s.endManipulation);
 
   // Refs to store start state (avoids stale closures)
   const startPointRef = useRef<Point | null>(null);
@@ -70,8 +71,8 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
     };
 
     // Calculate new position from start position + delta (not accumulating)
-    const newX = startPositionRef.current.x + scaledDelta.x;
-    const newY = startPositionRef.current.y + scaledDelta.y;
+    const newX = Math.round(startPositionRef.current.x + scaledDelta.x);
+    const newY = Math.round(startPositionRef.current.y + scaledDelta.y);
 
     updateShape(shapeId, { x: newX, y: newY });
   }, [shapeId, viewport.zoom, updateShape]);

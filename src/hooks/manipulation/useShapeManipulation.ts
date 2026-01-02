@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { Shape } from '@/types/shapes';
 import type { HandleType } from '@/types/interaction';
-import { useUIStore } from '@/stores/uiStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import { useShapeMove } from './useShapeMove';
 import { useShapeResize } from './useShapeResize';
 import { useShapeRotate } from './useShapeRotate';
@@ -15,7 +15,7 @@ interface UseShapeManipulationOptions {
  * Coordinates move, resize, and rotate operations.
  */
 export function useShapeManipulation({ shape }: UseShapeManipulationOptions) {
-  const manipulationState = useUIStore((s) => s.manipulationState);
+  const manipulationState = useInteractionStore((s) => s.manipulationState);
 
   // Track modifier keys via ref for real-time access during drag
   const modifiersRef = useRef({ shift: false, alt: false });

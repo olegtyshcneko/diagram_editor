@@ -1,11 +1,15 @@
-import { useUIStore } from '@/stores/uiStore';
+import { useViewportStore } from '@/stores/viewportStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 
 /**
  * Status bar component displaying zoom level and cursor position.
- * Reads cursor position from uiStore (updated by CanvasContainer).
+ * Reads cursor position from interactionStore (updated by CanvasContainer).
  */
 export function StatusBar() {
-  const { viewport, cursorCanvasPosition, resetZoom, resetView } = useUIStore();
+  const viewport = useViewportStore((s) => s.viewport);
+  const resetZoom = useViewportStore((s) => s.resetZoom);
+  const resetView = useViewportStore((s) => s.resetView);
+  const cursorCanvasPosition = useInteractionStore((s) => s.cursorCanvasPosition);
 
   const zoomPercentage = Math.round(viewport.zoom * 100);
 

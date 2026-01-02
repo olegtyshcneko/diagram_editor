@@ -3,7 +3,12 @@ import { useDiagramStore } from '@/stores/diagramStore';
 import { Shape } from './Shape';
 import { InteractiveSelectionHandles } from './InteractiveSelectionHandles';
 
-export function ShapeLayer() {
+interface ShapeLayerProps {
+  onShapeHover?: (shapeId: string | null) => void;
+  onShapeDoubleClick?: (shapeId: string) => void;
+}
+
+export function ShapeLayer({ onShapeHover, onShapeDoubleClick }: ShapeLayerProps) {
   const shapes = useDiagramStore((s) => s.shapes);
   const selectedShapeIds = useDiagramStore((s) => s.selectedShapeIds);
   const selectShape = useDiagramStore((s) => s.selectShape);
@@ -25,6 +30,9 @@ export function ShapeLayer() {
           shape={shape}
           isSelected={selectedShapeIds.includes(shape.id)}
           onSelect={handleSelect}
+          onDoubleClick={onShapeDoubleClick}
+          onMouseEnter={() => onShapeHover?.(shape.id)}
+          onMouseLeave={() => onShapeHover?.(null)}
         />
       ))}
 

@@ -1,15 +1,25 @@
 import { forwardRef } from 'react';
 import type { Viewport } from '@/types/viewport';
 import type { Size } from '@/types/common';
+import type { AnchorPosition } from '@/types/connections';
 import { calculateViewBox } from '@/lib/geometry/viewport';
-import { useUIStore } from '@/stores/uiStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import { ShapeLayer } from '@/components/shapes/ShapeLayer';
+import { ConnectionLayer, AnchorPointsOverlay } from '@/components/connections';
 import { CreationPreview } from './CreationPreview';
 import { RotationAngleDisplay } from './RotationAngleDisplay';
 
 interface CanvasProps {
   viewport: Viewport;
   containerSize: Size;
+  hoveredShapeId: string | null;
+  onAnchorMouseDown: (
+    shapeId: string,
+    anchor: AnchorPosition,
+    e: React.MouseEvent
+  ) => void;
+  onShapeHover: (shapeId: string | null) => void;
+  onShapeDoubleClick: (shapeId: string) => void;
   children?: React.ReactNode;
 }
 
@@ -18,9 +28,20 @@ interface CanvasProps {
  * Uses viewBox for zoom/pan transformation.
  */
 export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
-  function Canvas({ viewport, containerSize, children }, ref) {
+  function Canvas(
+    {
+      viewport,
+      containerSize,
+      hoveredShapeId,
+      onAnchorMouseDown,
+      onShapeHover,
+      onShapeDoubleClick,
+      children,
+    },
+    ref
+  ) {
     const viewBox = calculateViewBox(viewport, containerSize);
-    const creationState = useUIStore((s) => s.creationState);
+    const creationState = useInteractionStore((s) => s.creationState);
 
     return (
       <svg
@@ -39,8 +60,20 @@ export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
           fill="#f8f9fa"
         />
 
+        {/* Connection layer (behind shapes) */}
+        <ConnectionLayer />
+
         {/* Shape layer with all shapes and selection handles */}
-        <ShapeLayer />
+        <ShapeLayer
+          onShapeHover={onShapeHover}
+          onShapeDoubleClick={onShapeDoubleClick}
+        />
+
+        {/* Anchor points overlay (for connection creation) */}
+        <AnchorPointsOverlay
+          hoveredShapeId={hoveredShapeId}
+          onAnchorMouseDown={onAnchorMouseDown}
+        />
 
         {/* Preview during shape creation */}
         {creationState && <CreationPreview creationState={creationState} />}

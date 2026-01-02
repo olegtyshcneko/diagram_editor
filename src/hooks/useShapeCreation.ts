@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useUIStore } from '@/stores/uiStore';
+import { useViewportStore } from '@/stores/viewportStore';
+import { useInteractionStore } from '@/stores/interactionStore';
 import { useDiagramStore } from '@/stores/diagramStore';
 import type { Point, Size } from '@/types/common';
 import type { ShapeType } from '@/types/shapes';
@@ -12,12 +13,12 @@ interface UseShapeCreationProps {
 }
 
 export function useShapeCreation({ containerSize }: UseShapeCreationProps) {
-  const viewport = useUIStore((s) => s.viewport);
-  const activeTool = useUIStore((s) => s.activeTool);
-  const creationState = useUIStore((s) => s.creationState);
-  const startCreation = useUIStore((s) => s.startCreation);
-  const updateCreation = useUIStore((s) => s.updateCreation);
-  const cancelCreation = useUIStore((s) => s.cancelCreation);
+  const viewport = useViewportStore((s) => s.viewport);
+  const activeTool = useInteractionStore((s) => s.activeTool);
+  const creationState = useInteractionStore((s) => s.creationState);
+  const startCreation = useInteractionStore((s) => s.startCreation);
+  const updateCreation = useInteractionStore((s) => s.updateCreation);
+  const cancelCreation = useInteractionStore((s) => s.cancelCreation);
   const addShape = useDiagramStore((s) => s.addShape);
 
   const isCreationTool = activeTool === 'rectangle' || activeTool === 'ellipse';
@@ -52,8 +53,8 @@ export function useShapeCreation({ containerSize }: UseShapeCreationProps) {
       // Click (not drag) - use default size, centered at click point
       addShape({
         type: creationState.type,
-        x: creationState.startPoint.x - SHAPE_DEFAULTS.DEFAULT_WIDTH / 2,
-        y: creationState.startPoint.y - SHAPE_DEFAULTS.DEFAULT_HEIGHT / 2,
+        x: Math.round(creationState.startPoint.x - SHAPE_DEFAULTS.DEFAULT_WIDTH / 2),
+        y: Math.round(creationState.startPoint.y - SHAPE_DEFAULTS.DEFAULT_HEIGHT / 2),
         width: SHAPE_DEFAULTS.DEFAULT_WIDTH,
         height: SHAPE_DEFAULTS.DEFAULT_HEIGHT,
       });
@@ -61,10 +62,10 @@ export function useShapeCreation({ containerSize }: UseShapeCreationProps) {
       // Drag - use drawn size
       addShape({
         type: creationState.type,
-        x: bounds.x,
-        y: bounds.y,
-        width: bounds.width,
-        height: bounds.height,
+        x: Math.round(bounds.x),
+        y: Math.round(bounds.y),
+        width: Math.round(bounds.width),
+        height: Math.round(bounds.height),
       });
     }
 
