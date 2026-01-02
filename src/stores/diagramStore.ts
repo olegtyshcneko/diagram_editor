@@ -30,6 +30,9 @@ interface DiagramState {
   selectShape: (id: string, addToSelection?: boolean) => void;
   setSelectedShapeIds: (ids: string[]) => void;
   clearSelection: () => void;
+
+  // Bulk actions
+  deleteSelectedShapes: () => void;
 }
 
 export const useDiagramStore = create<DiagramState>()((set, get) => ({
@@ -111,4 +114,23 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
 
   clearSelection: () =>
     set({ selectedShapeIds: [], selectedConnectionIds: [] }),
+
+  // Bulk actions
+  deleteSelectedShapes: () => {
+    set((state) => {
+      const { selectedShapeIds, shapes } = state;
+      if (selectedShapeIds.length === 0) return state;
+
+      const newShapes = { ...shapes };
+      for (const id of selectedShapeIds) {
+        delete newShapes[id];
+      }
+
+      return {
+        shapes: newShapes,
+        selectedShapeIds: [],
+        isDirty: true,
+      };
+    });
+  },
 }));

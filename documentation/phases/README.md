@@ -13,7 +13,7 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P0 | Project Setup | **Completed** | [requirements_p0.md](./requirements_p0.md) | [spec_p0.md](./spec_p0.md) | [todo_p0.md](./todo_p0.md) |
 | P1 | Canvas Foundation | **Completed** | [requirements_p1.md](./requirements_p1.md) | [spec_p1.md](./spec_p1.md) | [todo_p1.md](./todo_p1.md) |
 | P2 | Basic Shapes | **Completed** | [requirements_p2.md](./requirements_p2.md) | [spec_p2.md](./spec_p2.md) | [todo_p2.md](./todo_p2.md) |
-| P3 | Shape Manipulation | Not Started | [requirements_p3.md](./requirements_p3.md) | [spec_p3.md](./spec_p3.md) | - |
+| P3 | Shape Manipulation | **Completed** | [requirements_p3.md](./requirements_p3.md) | [spec_p3.md](./spec_p3.md) | [todo_p3.md](./todo_p3.md) |
 | P4 | Styling & Properties | Not Started | [requirements_p4.md](./requirements_p4.md) | [spec_p4.md](./spec_p4.md) | - |
 | P5 | Text & Connections | Not Started | [requirements_p5.md](./requirements_p5.md) | [spec_p5.md](./spec_p5.md) | - |
 | P6 | Multi-Selection | Not Started | [requirements_p6.md](./requirements_p6.md) | [spec_p6.md](./spec_p6.md) | - |
@@ -74,3 +74,12 @@ Save/load JSON, export to PNG/SVG, import from files.
 - Shift constraint for perfect squares/circles
 - Creation preview during drag
 - Keyboard shortcuts working
+
+### P3 - Completed
+- Move shapes by dragging (works with any tool)
+- Arrow keys move 1px (10px with Shift)
+- Resize with 8 handles (Shift for aspect ratio, Alt for center)
+- Rotation handle with angle display (Shift for 15° snap)
+- Delete/Backspace removes selected shapes
+- Draw-through: shape tools draw on top of existing shapes (Illustrator/Figma behavior)
+- 45 unit tests for geometry utilities

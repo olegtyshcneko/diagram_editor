@@ -3,18 +3,19 @@ import type { Shape } from '@/types/shapes';
 
 interface EllipseProps {
   shape: Shape;
-  onClick: (e: React.MouseEvent) => void;
+  onMouseDown: (e: React.MouseEvent) => void;
 }
 
 export const Ellipse = memo(function Ellipse({
   shape,
-  onClick,
+  onMouseDown,
 }: EllipseProps) {
   const {
     x,
     y,
     width,
     height,
+    rotation,
     fill,
     fillOpacity,
     stroke,
@@ -35,19 +36,23 @@ export const Ellipse = memo(function Ellipse({
         ? '2 2'
         : undefined;
 
+  // Only apply rotation if non-zero
+  const transform = rotation ? `rotate(${rotation}, ${cx}, ${cy})` : undefined;
+
   return (
-    <ellipse
-      cx={cx}
-      cy={cy}
-      rx={rx}
-      ry={ry}
-      fill={fill === 'transparent' ? 'none' : fill}
-      fillOpacity={fillOpacity}
-      stroke={stroke === 'transparent' ? 'none' : stroke}
-      strokeWidth={strokeWidth}
-      strokeDasharray={strokeDasharray}
-      onClick={onClick}
-      style={{ cursor: 'pointer' }}
-    />
+    <g transform={transform}>
+      <ellipse
+        cx={cx}
+        cy={cy}
+        rx={rx}
+        ry={ry}
+        fill={fill === 'transparent' ? 'none' : fill}
+        fillOpacity={fillOpacity}
+        stroke={stroke === 'transparent' ? 'none' : stroke}
+        strokeWidth={strokeWidth}
+        strokeDasharray={strokeDasharray}
+        onMouseDown={onMouseDown}
+      />
+    </g>
   );
 });

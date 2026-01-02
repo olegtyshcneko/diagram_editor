@@ -22,6 +22,7 @@ export function CanvasContainer() {
     isPanning,
     spacebarHeld,
     activeTool,
+    manipulationState,
     zoomAtPoint,
     startPan,
     updatePan,
@@ -138,6 +139,12 @@ export function CanvasContainer() {
         return;
       }
 
+      // Skip selection handling if we're in a manipulation (resize/rotate/move)
+      // The manipulation will end via the window mouseup listener
+      if (manipulationState) {
+        return;
+      }
+
       // Handle selection on mouse up (click) for select tool
       if (activeTool === 'select' && e.button === 0) {
         const rect = containerRef.current?.getBoundingClientRect();
@@ -150,7 +157,7 @@ export function CanvasContainer() {
         selection.handleCanvasClick(screenPoint);
       }
     },
-    [isPanning, endPan, shapeCreation, activeTool, selection]
+    [isPanning, endPan, shapeCreation, manipulationState, activeTool, selection]
   );
 
   // Global mouse up (in case mouse is released outside canvas while dragging)

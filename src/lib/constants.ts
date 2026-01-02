@@ -36,3 +36,24 @@ export const KEYBOARD = {
   MOVE_STEP: 1,
   MOVE_STEP_LARGE: 10,
 };
+
+// Manipulation (move, resize, rotate)
+export const MANIPULATION = {
+  HANDLE_SIZE: 8,
+  HANDLE_HIT_AREA: 12,
+  ROTATION_HANDLE_OFFSET: 30,
+  ROTATION_SNAP_DEGREES: 15,
+};
+
+// Cursor map for resize handles
+export const CURSOR_MAP: Record<string, string> = {
+  nw: 'nwse-resize',
+  n: 'ns-resize',
+  ne: 'nesw-resize',
+  e: 'ew-resize',
+  se: 'nwse-resize',
+  s: 'ns-resize',
+  sw: 'nesw-resize',
+  w: 'ew-resize',
+  rotation: 'grab',
+};

@@ -5,6 +5,7 @@ import { calculateViewBox } from '@/lib/geometry/viewport';
 import { useUIStore } from '@/stores/uiStore';
 import { ShapeLayer } from '@/components/shapes/ShapeLayer';
 import { CreationPreview } from './CreationPreview';
+import { RotationAngleDisplay } from './RotationAngleDisplay';
 
 interface CanvasProps {
   viewport: Viewport;
@@ -43,6 +44,9 @@ export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
 
         {/* Preview during shape creation */}
         {creationState && <CreationPreview creationState={creationState} />}
+
+        {/* Rotation angle display during rotation */}
+        <RotationAngleDisplay />
 
         {/* Additional children if needed */}
         {children}

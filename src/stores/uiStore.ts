@@ -4,6 +4,7 @@ import type { Viewport } from '@/types/viewport';
 import type { Point, Size } from '@/types/common';
 import type { ShapeType } from '@/types/shapes';
 import type { CreationState } from '@/types/creation';
+import type { ManipulationState } from '@/types/interaction';
 import { zoomAtPoint as zoomAtPointUtil } from '@/lib/geometry/viewport';
 import { CANVAS_DEFAULTS } from '@/lib/constants';
 
@@ -22,6 +23,9 @@ interface UIState {
 
   // Shape creation state
   creationState: CreationState | null;
+
+  // Shape manipulation state (move, resize, rotate)
+  manipulationState: ManipulationState | null;
 
   // Cursor position for status bar
   cursorCanvasPosition: Point;
@@ -49,6 +53,10 @@ interface UIState {
   startCreation: (type: ShapeType, startPoint: Point) => void;
   updateCreation: (currentPoint: Point, isShiftHeld: boolean) => void;
   cancelCreation: () => void;
+
+  // Manipulation actions
+  startManipulation: (state: ManipulationState) => void;
+  endManipulation: () => void;
 }
 
 const DEFAULT_VIEWPORT: Viewport = {
@@ -69,6 +77,8 @@ export const useUIStore = create<UIState>()((set) => ({
   spacebarHeld: false,
 
   creationState: null,
+
+  manipulationState: null,
 
   cursorCanvasPosition: { x: 0, y: 0 },
 
@@ -157,4 +167,9 @@ export const useUIStore = create<UIState>()((set) => ({
     })),
 
   cancelCreation: () => set({ creationState: null }),
+
+  // Manipulation actions
+  startManipulation: (manipState) => set({ manipulationState: manipState }),
+
+  endManipulation: () => set({ manipulationState: null }),
 }));
