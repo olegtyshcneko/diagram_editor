@@ -52,6 +52,7 @@ Phase 8 adds organizational features for complex diagrams and advanced connectio
 | E06-US10 | Text on Connection Path | P1 | Partial |
 | E06-US11 | Disconnect Connection | P1 | Full |
 | E06-US13 | Waypoints on Connections | P2 | Full |
+| E06-US14 | Shape-Level Connection Targeting | P0 | Full |
 
 ---
 
@@ -604,6 +605,59 @@ Scenario: Waypoints visible when selected
 
 ---
 
+### E06-US14: Shape-Level Connection Targeting
+
+**As a** user
+**I want** to connect to a shape without precisely clicking an anchor point
+**So that** creating connections is faster and easier
+
+```gherkin
+Scenario: Connect by dropping on shape
+  Given I am creating a connection from shape A
+  When I drag to shape B and release anywhere on the shape body
+  Then the connection is created
+  And the system automatically selects the best anchor point on shape B
+  And the best anchor is the one closest to the drag release point
+
+Scenario: Best anchor selection based on approach angle
+  Given I am dragging a connection from the right side of shape A
+  When I approach shape B from the left
+  Then the left anchor of shape B is highlighted
+  And releasing creates a connection to the left anchor
+
+Scenario: Shape highlights during drag
+  Given I am dragging a connection endpoint
+  When I hover over a target shape
+  Then the entire shape highlights (e.g., blue border)
+  And the predicted best anchor point is emphasized
+  And other anchors remain visible but less prominent
+
+Scenario: Snap to specific anchor overrides auto-select
+  Given I am dragging a connection to shape B
+  When I move close to a specific anchor point (within snap threshold)
+  Then that anchor is selected instead of the auto-calculated best
+  And the snap is visually indicated
+
+Scenario: Auto-select considers connection direction
+  Given shape A is to the left of shape B
+  When I create a connection from shape A to shape B
+  Then the system prefers right anchor on A and left anchor on B
+  And the resulting connection is clean (minimal crossover)
+
+Scenario: Fallback to nearest anchor
+  Given I release a connection on a shape corner
+  Then the system selects the nearest anchor point
+  And never creates invalid connections
+
+Scenario: Works with all connection styles
+  Given I have connection style set to curved or orthogonal
+  When I use shape-level targeting
+  Then the auto-selected anchors work correctly with the connection style
+  And curved connections exit/enter perpendicular to selected anchors
+```
+
+---
+
 ## Features Included
 
 1. **Shape Grouping**
@@ -649,6 +703,12 @@ Scenario: Waypoints visible when selected
    - Drag to disconnect endpoints
    - Reattach to different anchors
    - Visual feedback for floating endpoints
+
+8. **Shape-Level Connection Targeting**
+   - Connect to shapes without precise anchor clicking
+   - Auto-select best anchor based on approach direction
+   - Shape highlight on hover during connection drag
+   - Snap override when close to specific anchor
 
 ---
 
@@ -733,6 +793,14 @@ Scenario: Waypoints visible when selected
 - [ ] Can reattach to different anchor
 - [ ] Visual feedback for floating endpoints
 
+### Shape-Level Connection Targeting
+- [ ] Can drop connection on shape body (not just anchor)
+- [ ] Best anchor auto-selected based on approach direction
+- [ ] Shape highlights when hovered during connection drag
+- [ ] Predicted anchor point emphasized
+- [ ] Close proximity to specific anchor snaps to it
+- [ ] Works with straight, curved, and orthogonal styles
+
 ---
 
 ## Test Scenarios
@@ -785,6 +853,11 @@ Scenario: Waypoints visible when selected
 11. **Add Waypoint**
     - Select connection, double-click line
     - Verify waypoint added, drag it
+
+12. **Shape-Level Targeting**
+    - Create connection by dropping on shape body
+    - Verify best anchor auto-selected
+    - Verify shape highlights during hover
 
 ---
 

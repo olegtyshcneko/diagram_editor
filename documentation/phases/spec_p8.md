@@ -105,7 +105,8 @@ src/
 │   │       ├── OrthogonalConnection.tsx
 │   │       ├── ConnectionWaypoints.tsx
 │   │       ├── ConnectionLabel.tsx
-│   │       └── ConnectionControlPoints.tsx
+│   │       ├── ConnectionControlPoints.tsx
+│   │       └── ShapeConnectionHighlight.tsx
 │   └── panels/
 │       ├── LayersPanel.tsx
 │       ├── LayerItem.tsx
@@ -114,7 +115,8 @@ src/
 │   ├── bezierUtils.ts            # Bezier curve calculations
 │   ├── orthogonalRouting.ts      # Orthogonal path finding
 │   ├── pathUtils.ts              # Path manipulation utilities
-│   └── groupUtils.ts             # Group operations
+│   ├── groupUtils.ts             # Group operations
+│   └── anchorSelection.ts        # Best anchor calculation for shape-level targeting
 └── types/
     ├── layer.ts                  # Layer types
     ├── group.ts                  # Group types
@@ -316,6 +318,14 @@ export interface AdvancedConnection extends Connection {
 40. Implement endpoint dragging
 41. Add floating endpoint visual state
 42. Implement anchor snapping for reattachment
+
+### Step 11.5: Shape-Level Connection Targeting
+
+43. Create `utils/anchorSelection.ts` for best anchor calculation
+44. Update `useConnectionCreation` hook for shape-level targeting
+45. Add shape highlight state during connection drag
+46. Implement approach-direction-based anchor selection
+47. Add snap-to-anchor override when close to specific anchor
 
 ### Step 12: Menu Integration
 
@@ -1129,6 +1139,353 @@ export const LayerItem: React.FC<LayerItemProps> = ({
   );
 };
 ```
+
+### Shape-Level Connection Targeting
+
+```typescript
+// utils/anchorSelection.ts
+
+import type { Point } from '../types/common';
+import type { Shape } from '../types/shapes';
+import type { AnchorPosition } from '../types/connections';
+
+interface AnchorCandidate {
+  anchor: AnchorPosition;
+  point: Point;
+  score: number;
+}
+
+/**
+ * Calculate the best anchor point on a target shape based on:
+ * 1. Distance from the drag point to each anchor
+ * 2. Approach direction (prefer anchors facing the source)
+ * 3. Connection cleanliness (avoid crossovers)
+ */
+export function calculateBestAnchor(
+  targetShape: Shape,
+  dragPoint: Point,
+  sourcePoint: Point,
+  sourceAnchor?: AnchorPosition
+): { anchor: AnchorPosition; point: Point } {
+  const anchors = getAllAnchors(targetShape);
+
+  // Score each anchor
+  const candidates: AnchorCandidate[] = anchors.map(({ anchor, point }) => {
+    let score = 0;
+
+    // Factor 1: Distance to drag point (closer = better, max 50 points)
+    const distanceToDrag = Math.hypot(point.x - dragPoint.x, point.y - dragPoint.y);
+    const maxDistance = Math.max(targetShape.width, targetShape.height);
+    score += 50 * (1 - Math.min(distanceToDrag / maxDistance, 1));
+
+    // Factor 2: Approach direction (anchor facing source = better, max 30 points)
+    const approachAngle = Math.atan2(
+      sourcePoint.y - point.y,
+      sourcePoint.x - point.x
+    );
+    const anchorDirection = getAnchorDirection(anchor);
+    const angleDiff = Math.abs(normalizeAngle(approachAngle - anchorDirection));
+    score += 30 * (1 - angleDiff / Math.PI);
+
+    // Factor 3: Opposite anchor bonus (if source is 'right', prefer 'left', max 20 points)
+    if (sourceAnchor && isOppositeAnchor(sourceAnchor, anchor)) {
+      score += 20;
+    }
+
+    return { anchor, point, score };
+  });
+
+  // Sort by score (highest first) and return best
+  candidates.sort((a, b) => b.score - a.score);
+  return { anchor: candidates[0].anchor, point: candidates[0].point };
+}
+
+function getAnchorDirection(anchor: AnchorPosition): number {
+  switch (anchor) {
+    case 'top': return -Math.PI / 2;    // Points up
+    case 'bottom': return Math.PI / 2;  // Points down
+    case 'left': return Math.PI;        // Points left
+    case 'right': return 0;             // Points right
+  }
+}
+
+function isOppositeAnchor(a: AnchorPosition, b: AnchorPosition): boolean {
+  return (
+    (a === 'left' && b === 'right') ||
+    (a === 'right' && b === 'left') ||
+    (a === 'top' && b === 'bottom') ||
+    (a === 'bottom' && b === 'top')
+  );
+}
+
+function normalizeAngle(angle: number): number {
+  while (angle > Math.PI) angle -= 2 * Math.PI;
+  while (angle < -Math.PI) angle += 2 * Math.PI;
+  return Math.abs(angle);
+}
+
+/**
+ * Check if a point is inside a shape's bounds (for shape-level hit testing)
+ */
+export function isPointInShape(point: Point, shape: Shape): boolean {
+  // Simple bounding box check (rotation handled separately if needed)
+  return (
+    point.x >= shape.x &&
+    point.x <= shape.x + shape.width &&
+    point.y >= shape.y &&
+    point.y <= shape.y + shape.height
+  );
+}
+
+/**
+ * Find which shape (if any) contains a point
+ */
+export function findShapeAtPoint(
+  point: Point,
+  shapes: Shape[]
+): Shape | null {
+  // Check in reverse order (top-most first)
+  for (let i = shapes.length - 1; i >= 0; i--) {
+    if (isPointInShape(point, shapes[i])) {
+      return shapes[i];
+    }
+  }
+  return null;
+}
+```
+
+### Updated Connection Creation Hook with Shape-Level Targeting
+
+```typescript
+// hooks/useConnectionCreation.ts (updated)
+
+import { calculateBestAnchor, findShapeAtPoint, isPointInShape } from '../utils/anchorSelection';
+import { findNearestAnchor } from '../lib/geometry/connection';
+
+const ANCHOR_SNAP_THRESHOLD = 25; // px - snap to specific anchor if within this distance
+
+export function useConnectionCreation({ containerRef }: UseConnectionCreationProps) {
+  // ... existing state ...
+
+  // New: Track hovered shape during connection creation
+  const [hoveredTargetShape, setHoveredTargetShape] = useState<Shape | null>(null);
+  const [predictedAnchor, setPredictedAnchor] = useState<AnchorPosition | null>(null);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!connectionCreationState) return;
+
+    const canvasPoint = screenToCanvas(e.clientX, e.clientY);
+    updateConnectionCreation(canvasPoint);
+
+    // Find shape under cursor (excluding source shape)
+    const shapesArray = Object.values(shapes).filter(
+      s => s.id !== connectionCreationState.sourceShapeId
+    );
+    const targetShape = findShapeAtPoint(canvasPoint, shapesArray);
+
+    setHoveredTargetShape(targetShape);
+
+    if (targetShape) {
+      // Check if close to a specific anchor (snap mode)
+      const nearestAnchor = findNearestAnchor(targetShape, canvasPoint, ANCHOR_SNAP_THRESHOLD);
+
+      if (nearestAnchor) {
+        // Snap to specific anchor
+        setPredictedAnchor(nearestAnchor.anchor);
+      } else {
+        // Calculate best anchor based on approach
+        const best = calculateBestAnchor(
+          targetShape,
+          canvasPoint,
+          connectionCreationState.sourcePoint,
+          connectionCreationState.sourceAnchor
+        );
+        setPredictedAnchor(best.anchor);
+      }
+    } else {
+      setPredictedAnchor(null);
+    }
+  }, [connectionCreationState, shapes, screenToCanvas, updateConnectionCreation]);
+
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    if (!connectionCreationState) return;
+
+    const canvasPoint = screenToCanvas(e.clientX, e.clientY);
+
+    // Find target shape
+    const shapesArray = Object.values(shapes).filter(
+      s => s.id !== connectionCreationState.sourceShapeId
+    );
+    const targetShape = findShapeAtPoint(canvasPoint, shapesArray);
+
+    if (targetShape) {
+      // Check for snap to specific anchor first
+      const nearestAnchor = findNearestAnchor(targetShape, canvasPoint, ANCHOR_SNAP_THRESHOLD);
+
+      let targetAnchor: AnchorPosition;
+      if (nearestAnchor) {
+        // Use snapped anchor
+        targetAnchor = nearestAnchor.anchor;
+      } else {
+        // Auto-select best anchor
+        const best = calculateBestAnchor(
+          targetShape,
+          canvasPoint,
+          connectionCreationState.sourcePoint,
+          connectionCreationState.sourceAnchor
+        );
+        targetAnchor = best.anchor;
+      }
+
+      // Create connection
+      addConnection({
+        sourceShapeId: connectionCreationState.sourceShapeId,
+        sourceAnchor: connectionCreationState.sourceAnchor,
+        targetShapeId: targetShape.id,
+        targetAnchor,
+      });
+    }
+
+    // Clean up
+    setHoveredTargetShape(null);
+    setPredictedAnchor(null);
+    endConnectionCreation();
+  }, [connectionCreationState, shapes, screenToCanvas, addConnection, endConnectionCreation]);
+
+  return {
+    handleAnchorMouseDown,
+    isCreatingConnection: connectionCreationState !== null,
+    // New exports for UI feedback
+    hoveredTargetShape,
+    predictedAnchor,
+  };
+}
+```
+
+### Shape Highlight Component
+
+```typescript
+// components/connections/ShapeConnectionHighlight.tsx
+
+interface ShapeConnectionHighlightProps {
+  shape: Shape;
+  predictedAnchor: AnchorPosition | null;
+}
+
+export const ShapeConnectionHighlight: React.FC<ShapeConnectionHighlightProps> = ({
+  shape,
+  predictedAnchor,
+}) => {
+  const anchors = getAllAnchors(shape);
+
+  return (
+    <g className="shape-connection-highlight">
+      {/* Shape highlight border */}
+      <rect
+        x={shape.x - 2}
+        y={shape.y - 2}
+        width={shape.width + 4}
+        height={shape.height + 4}
+        fill="none"
+        stroke="#3B82F6"
+        strokeWidth={2}
+        strokeDasharray="4 2"
+        rx={4}
+        opacity={0.8}
+      />
+
+      {/* All anchors (dimmed) */}
+      {anchors.map(({ anchor, point }) => (
+        <circle
+          key={anchor}
+          cx={point.x}
+          cy={point.y}
+          r={anchor === predictedAnchor ? 6 : 4}
+          fill={anchor === predictedAnchor ? '#3B82F6' : 'white'}
+          stroke="#3B82F6"
+          strokeWidth={anchor === predictedAnchor ? 2 : 1}
+          opacity={anchor === predictedAnchor ? 1 : 0.5}
+        />
+      ))}
+
+      {/* Predicted anchor emphasis */}
+      {predictedAnchor && (
+        <circle
+          cx={anchors.find(a => a.anchor === predictedAnchor)?.point.x}
+          cy={anchors.find(a => a.anchor === predictedAnchor)?.point.y}
+          r={10}
+          fill="none"
+          stroke="#3B82F6"
+          strokeWidth={2}
+          opacity={0.3}
+        />
+      )}
+    </g>
+  );
+};
+```
+
+### Enhanced Snap Feedback (Magnetic Pull Effect)
+
+For improved UX, the connection preview line can show a "magnetic pull" effect when approaching an anchor:
+
+```typescript
+// In useConnectionCreation hook - enhanced preview line calculation
+
+interface ConnectionPreview {
+  endPoint: Point;        // Actual cursor position or snapped anchor
+  isSnapping: boolean;    // True when snapped to anchor
+  snapStrength: number;   // 0-1, for animation interpolation
+}
+
+function calculatePreviewEndpoint(
+  cursorPoint: Point,
+  targetShape: Shape | null,
+  predictedAnchor: AnchorPosition | null
+): ConnectionPreview {
+  if (!targetShape || !predictedAnchor) {
+    return { endPoint: cursorPoint, isSnapping: false, snapStrength: 0 };
+  }
+
+  const anchorPoint = getAnchorPosition(targetShape, predictedAnchor);
+  const distanceToAnchor = Math.hypot(
+    cursorPoint.x - anchorPoint.x,
+    cursorPoint.y - anchorPoint.y
+  );
+
+  const SNAP_RADIUS = 40;      // Start pulling at this distance
+  const HARD_SNAP_RADIUS = 15; // Full snap at this distance
+
+  if (distanceToAnchor <= HARD_SNAP_RADIUS) {
+    // Hard snap - line goes directly to anchor
+    return { endPoint: anchorPoint, isSnapping: true, snapStrength: 1 };
+  }
+
+  if (distanceToAnchor <= SNAP_RADIUS) {
+    // Magnetic pull - interpolate between cursor and anchor
+    const t = 1 - (distanceToAnchor - HARD_SNAP_RADIUS) / (SNAP_RADIUS - HARD_SNAP_RADIUS);
+    const pullStrength = easeOutCubic(t); // Smooth easing
+
+    return {
+      endPoint: {
+        x: cursorPoint.x + (anchorPoint.x - cursorPoint.x) * pullStrength,
+        y: cursorPoint.y + (anchorPoint.y - cursorPoint.y) * pullStrength,
+      },
+      isSnapping: true,
+      snapStrength: pullStrength,
+    };
+  }
+
+  // No snap - follow cursor
+  return { endPoint: cursorPoint, isSnapping: false, snapStrength: 0 };
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+```
+
+This creates a smooth "magnetic" feel where the connection line gradually pulls toward the predicted anchor as the cursor approaches, providing clear visual feedback before committing to the connection.
 
 ### Group-Aware Selection Hook
 

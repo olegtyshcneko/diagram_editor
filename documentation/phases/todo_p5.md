@@ -44,8 +44,8 @@
 - [x] Step 21: Add constants for connections and text
 
 ### Verification
-- [ ] Manual testing of all text editing features
-- [ ] Manual testing of all connection features
+- [x] Manual testing of all text editing features
+- [x] Manual testing of all connection features
 
 ## Completed Summary
 | Task | Status | Notes |
