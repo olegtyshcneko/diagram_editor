@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import type { Shape } from '@/types/shapes';
+import type { Shape, ShapeType } from '@/types/shapes';
+import { DEFAULT_SHAPE } from '@/types/shapes';
 import type { Connection } from '@/types/connections';
+import { generateId } from '@/lib/utils/id';
 
 interface DiagramState {
   // Document
@@ -16,14 +18,21 @@ interface DiagramState {
   selectedShapeIds: string[];
   selectedConnectionIds: string[];
 
-  // Actions (to be implemented in later phases)
-  // addShape: (shape: Shape) => void;
-  // updateShape: (id: string, updates: Partial<Shape>) => void;
-  // deleteShape: (id: string) => void;
-  // ... more actions
+  // Z-index tracking
+  nextZIndex: number;
+
+  // Shape actions
+  addShape: (partialShape: Partial<Shape> & { type: ShapeType }) => string;
+  updateShape: (id: string, updates: Partial<Shape>) => void;
+  deleteShape: (id: string) => void;
+
+  // Selection actions
+  selectShape: (id: string, addToSelection?: boolean) => void;
+  setSelectedShapeIds: (ids: string[]) => void;
+  clearSelection: () => void;
 }
 
-export const useDiagramStore = create<DiagramState>()(() => ({
+export const useDiagramStore = create<DiagramState>()((set, get) => ({
   // Initial state
   documentId: null,
   documentTitle: 'Untitled Diagram',
@@ -35,5 +44,71 @@ export const useDiagramStore = create<DiagramState>()(() => ({
   selectedShapeIds: [],
   selectedConnectionIds: [],
 
-  // Actions will be added in subsequent phases
+  nextZIndex: 1,
+
+  // Shape actions
+  addShape: (partialShape) => {
+    const id = generateId();
+    const { nextZIndex } = get();
+
+    const shape: Shape = {
+      id,
+      x: 0,
+      y: 0,
+      ...DEFAULT_SHAPE,
+      ...partialShape,
+      zIndex: nextZIndex,
+    };
+
+    set((state) => ({
+      shapes: { ...state.shapes, [id]: shape },
+      nextZIndex: state.nextZIndex + 1,
+      isDirty: true,
+      selectedShapeIds: [id], // Auto-select new shape
+    }));
+
+    return id;
+  },
+
+  updateShape: (id, updates) => {
+    set((state) => ({
+      shapes: {
+        ...state.shapes,
+        [id]: { ...state.shapes[id], ...updates },
+      },
+      isDirty: true,
+    }));
+  },
+
+  deleteShape: (id) => {
+    set((state) => {
+      const { [id]: deleted, ...remaining } = state.shapes;
+      return {
+        shapes: remaining,
+        selectedShapeIds: state.selectedShapeIds.filter((sid) => sid !== id),
+        isDirty: true,
+      };
+    });
+  },
+
+  // Selection actions
+  selectShape: (id, addToSelection = false) => {
+    set((state) => {
+      if (addToSelection) {
+        // Toggle selection
+        const isSelected = state.selectedShapeIds.includes(id);
+        return {
+          selectedShapeIds: isSelected
+            ? state.selectedShapeIds.filter((sid) => sid !== id)
+            : [...state.selectedShapeIds, id],
+        };
+      }
+      return { selectedShapeIds: [id] };
+    });
+  },
+
+  setSelectedShapeIds: (ids) => set({ selectedShapeIds: ids }),
+
+  clearSelection: () =>
+    set({ selectedShapeIds: [], selectedConnectionIds: [] }),
 }));

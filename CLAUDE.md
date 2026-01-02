@@ -1,12 +1,24 @@
 # Naive Draw.io - Claude Instructions
 
+## Starting a Phase
+
+When user says **"start phase N"** (e.g., "start phase 2"):
+
+1. Read `documentation/phases/README.md` to check phase status and get document links
+2. Follow the "At Start of Each Phase" workflow below
+
+---
+
 ## Phase-Based Todo Workflow (Hybrid Approach)
 
-### At Start of Each Phase
+### At Start of Each Phase (MUST FOLLOW IN ORDER)
 
 1. Read `documentation/phases/requirements_pN.md` and `spec_pN.md`
-2. Create `documentation/phases/todo_pN.md` with tasks derived from the spec
-3. Use TodoWrite tool for granular in-session tracking
+2. **IMMEDIATELY create `documentation/phases/todo_pN.md`** with tasks derived from the spec
+   - Do this BEFORE writing any code
+   - Include all tasks from the spec's implementation order
+   - Include verification tasks from the spec
+3. Use TodoWrite tool for granular in-session tracking (synced with todo_pN.md)
 
 ### Todo File Format (`todo_pN.md`)
 
@@ -41,6 +53,8 @@
 - Ensure all tasks marked complete or documented why not
 - Update Status to "Completed" (or "Partial" with notes)
 - Review summary table for any unresolved issues
+- Add any discovered bugs/issues to `documentation/known_issues.md`
+- **Update `documentation/phases/README.md`** - mark phase as Completed, add completion notes
 
 ### Manual Test Verification
 
@@ -67,10 +81,13 @@ src/
 │   └── geometry/     # Geometry calculations (P1+)
 └── types/            # TypeScript type definitions
 
-documentation/phases/
-├── requirements_p0.md ... requirements_p9.md
-├── spec_p0.md ... spec_p9.md
-└── todo_p0.md ... todo_p9.md
+documentation/
+├── known_issues.md        # Track bugs/issues for later investigation
+└── phases/
+    ├── README.md          # Phase tracker - start here!
+    ├── requirements_p0.md ... requirements_p9.md
+    ├── spec_p0.md ... spec_p9.md
+    └── todo_p0.md ... todo_p9.md
 ```
 
 ## Coding Conventions

@@ -1,10 +1,8 @@
-import type { ReactNode } from 'react';
+import { CanvasContainer } from '@/components/canvas/CanvasContainer';
+import { StatusBar } from './StatusBar';
+import { Toolbar } from '@/components/toolbar/Toolbar';
 
-interface AppShellProps {
-  children?: ReactNode;
-}
-
-export function AppShell({ children }: AppShellProps) {
+export function AppShell() {
   return (
     <div className="h-screen flex flex-col bg-gray-100">
       {/* Menu Bar */}
@@ -14,19 +12,11 @@ export function AppShell({ children }: AppShellProps) {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Toolbar / Shape Panel */}
-        <aside className="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-2">
-          <div className="w-10 h-10 bg-gray-200 rounded mb-2" title="Select Tool" />
-          <div className="w-10 h-10 bg-gray-200 rounded mb-2" title="Rectangle" />
-          <div className="w-10 h-10 bg-gray-200 rounded mb-2" title="Ellipse" />
-        </aside>
+        <Toolbar />
 
         {/* Canvas Area */}
         <main className="flex-1 bg-gray-50 relative overflow-hidden">
-          {children || (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-              Canvas will be implemented in Phase 1
-            </div>
-          )}
+          <CanvasContainer />
         </main>
 
         {/* Property Panel */}
@@ -39,11 +29,7 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       {/* Status Bar */}
-      <footer className="h-6 bg-white border-t border-gray-200 flex items-center px-4 text-xs text-gray-500">
-        <span>Zoom: 100%</span>
-        <span className="mx-4">|</span>
-        <span>Position: 0, 0</span>
-      </footer>
+      <StatusBar />
     </div>
   );
 }
