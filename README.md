@@ -1,73 +1,142 @@
-# React + TypeScript + Vite
+# Naive Draw.io
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based vector diagramming application built with React and TypeScript. Create, edit, and manipulate diagrams with shapes, connections, and text - similar to draw.io.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Current (Phases 0-3 Complete)
 
-## React Compiler
+- **SVG Canvas** - Infinite canvas with zoom (mouse wheel, cursor-centered) and pan (spacebar + drag)
+- **Shape Creation** - Rectangle and ellipse tools with click+drag creation and live preview
+- **Shape Selection** - Click to select with visual feedback and selection handles
+- **Shape Manipulation**
+  - Move: Drag or arrow keys (Shift for 10px increments)
+  - Resize: 8 handles with Shift (aspect ratio) and Alt (from center) modifiers
+  - Rotate: Rotation handle with Shift snapping to 15° increments
+  - Delete: Delete/Backspace keys
+- **Keyboard Shortcuts** - V (select), R (rectangle), E (ellipse), Escape (cancel)
+- **Status Bar** - Shows zoom level and cursor position
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Planned
 
-## Expanding the ESLint configuration
+| Phase | Features |
+|-------|----------|
+| P4 | Fill/stroke colors, stroke styles, property panel |
+| P5 | Text editing, straight line connections |
+| P6 | Multi-selection, copy/paste, alignment tools |
+| P7 | Undo/redo, grid display, snap-to-grid, context menus |
+| P8 | Groups, layers, curved connections |
+| P9 | Save/load, export (PNG/SVG/PDF), draw.io compatibility |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **React 19** - UI framework
+- **TypeScript 5.9** - Type safety
+- **Vite 7** - Build tool with HMR
+- **Tailwind CSS 4** - Styling
+- **Zustand** - State management
+- **shadcn/ui** - UI components
+- **Vitest** - Testing
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/olegtyshcneko/diagram_editor.git
+cd diagram_editor
+
+# Install dependencies
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Start development server
+npm run dev
 ```
+
+Open http://localhost:5173 in your browser.
+
+### Other Commands
+
+```bash
+# Type checking
+npx tsc --noEmit
+
+# Run tests
+npm test          # Watch mode
+npm run test:run  # Single run
+
+# Linting
+npm run lint
+
+# Production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| V | Select tool |
+| R | Rectangle tool |
+| E | Ellipse tool |
+| Escape | Cancel current operation |
+| Delete / Backspace | Delete selected shape |
+| Arrow keys | Move selected shape (1px) |
+| Shift + Arrow keys | Move selected shape (10px) |
+| Mouse wheel | Zoom in/out |
+| Spacebar + drag | Pan canvas |
+
+### Shape Creation Modifiers
+
+| Modifier | Effect |
+|----------|--------|
+| Shift | Constrain to square/circle |
+
+### Resize Modifiers
+
+| Modifier | Effect |
+|----------|--------|
+| Shift | Preserve aspect ratio |
+| Alt | Resize from center |
+
+### Rotation Modifiers
+
+| Modifier | Effect |
+|----------|--------|
+| Shift | Snap to 15° increments |
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── canvas/       # SVG canvas, zoom/pan, creation preview
+│   ├── shapes/       # Shape rendering and selection handles
+│   ├── toolbar/      # Tool selection UI
+│   ├── layout/       # App shell, status bar
+│   └── ui/           # shadcn/ui components
+├── hooks/            # Custom React hooks for interactions
+├── stores/           # Zustand state management
+├── lib/              # Utilities and geometry calculations
+└── types/            # TypeScript type definitions
+
+documentation/
+└── phases/           # Phase specifications and requirements
+```
+
+## License
+
+MIT
