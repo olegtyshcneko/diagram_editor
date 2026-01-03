@@ -4,11 +4,13 @@ import type { Size } from '@/types/common';
 import type { AnchorPosition } from '@/types/connections';
 import { calculateViewBox } from '@/lib/geometry/viewport';
 import { useInteractionStore } from '@/stores/interactionStore';
+import { usePreferencesStore } from '@/stores/preferencesStore';
 import { ShapeLayer } from '@/components/shapes/ShapeLayer';
 import { ConnectionLayer, AnchorPointsOverlay } from '@/components/connections';
 import { CreationPreview } from './CreationPreview';
 import { SelectionBoxLayer } from './SelectionBoxLayer';
 import { RotationAngleDisplay } from './RotationAngleDisplay';
+import { GridBackground } from './GridBackground';
 
 interface CanvasProps {
   viewport: Viewport;
@@ -43,6 +45,8 @@ export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
   ) {
     const viewBox = calculateViewBox(viewport, containerSize);
     const creationState = useInteractionStore((s) => s.creationState);
+    const showGrid = usePreferencesStore((s) => s.showGrid);
+    const gridSize = usePreferencesStore((s) => s.gridSize);
 
     return (
       <svg
@@ -59,6 +63,14 @@ export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
           width={20000}
           height={20000}
           fill="#f8f9fa"
+        />
+
+        {/* Grid pattern (behind everything else) */}
+        <GridBackground
+          viewport={viewport}
+          containerSize={containerSize}
+          visible={showGrid}
+          gridSize={gridSize}
         />
 
         {/* Connection layer (behind shapes) */}

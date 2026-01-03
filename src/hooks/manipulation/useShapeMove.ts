@@ -3,7 +3,11 @@ import type { Point, Bounds } from '@/types/common';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useViewportStore } from '@/stores/viewportStore';
 import { useInteractionStore } from '@/stores/interactionStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { usePreferencesStore } from '@/stores/preferencesStore';
 import { constrainToAxis } from '@/lib/geometry/manipulation';
+import { snapToGrid } from '@/lib/geometry/snap';
+import { EMPTY_CONNECTION_DELTA } from '@/types/history';
 
 interface UseMoveOptions {
   shapeId: string;
@@ -21,12 +25,17 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
   const viewport = useViewportStore((s) => s.viewport);
   const startManipulation = useInteractionStore((s) => s.startManipulation);
   const endManipulation = useInteractionStore((s) => s.endManipulation);
+  const pushEntry = useHistoryStore((s) => s.pushEntry);
+  const snapEnabled = usePreferencesStore((s) => s.snapToGrid);
+  const gridSize = usePreferencesStore((s) => s.gridSize);
 
   // Refs to store start state (avoids stale closures)
   const startPointRef = useRef<Point | null>(null);
   const startPositionRef = useRef<Point | null>(null);
   // Store start positions of ALL selected shapes for multi-move
   const startPositionsRef = useRef<Map<string, Point>>(new Map());
+  // Track if any actual movement occurred (for history)
+  const hasMoved = useRef<boolean>(false);
 
   /**
    * Start a move operation
@@ -51,6 +60,8 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
     }
     startPositionsRef.current = positions;
 
+    hasMoved.current = false;
+
     startManipulation({
       type: 'move',
       shapeId,
@@ -63,10 +74,12 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
   /**
    * Update position during move
    * Moves ALL selected shapes by the same delta
+   * Alt key temporarily disables snap-to-grid
    */
   const handleMoveUpdate = useCallback((
     e: MouseEvent,
-    shiftHeld: boolean
+    shiftHeld: boolean,
+    altHeld: boolean = false
   ) => {
     if (!startPointRef.current) return;
 
@@ -87,23 +100,72 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
       y: delta.y / viewport.zoom,
     };
 
+    // Determine if snap is active (enabled in preferences, not disabled by Alt)
+    const shouldSnap = snapEnabled && !altHeld;
+
     // Update ALL selected shapes with the same delta
     startPositionsRef.current.forEach((startPos, id) => {
-      const newX = Math.round(startPos.x + scaledDelta.x);
-      const newY = Math.round(startPos.y + scaledDelta.y);
+      let newX = startPos.x + scaledDelta.x;
+      let newY = startPos.y + scaledDelta.y;
+
+      // Apply snap-to-grid
+      if (shouldSnap) {
+        newX = snapToGrid(newX, gridSize);
+        newY = snapToGrid(newY, gridSize);
+      } else {
+        newX = Math.round(newX);
+        newY = Math.round(newY);
+      }
+
       updateShape(id, { x: newX, y: newY });
     });
-  }, [viewport.zoom, updateShape]);
+
+    // Mark that movement occurred
+    hasMoved.current = true;
+  }, [viewport.zoom, updateShape, snapEnabled, gridSize]);
 
   /**
    * End the move operation
    */
   const handleMoveEnd = useCallback(() => {
+    // Push history entry if movement actually occurred
+    if (hasMoved.current && startPositionsRef.current.size > 0) {
+      const currentShapes = useDiagramStore.getState().shapes;
+      const modifications = Array.from(startPositionsRef.current.entries())
+        .map(([id, startPos]) => {
+          const currentShape = currentShapes[id];
+          if (!currentShape) return null;
+          return {
+            id,
+            before: { x: startPos.x, y: startPos.y },
+            after: { x: currentShape.x, y: currentShape.y },
+          };
+        })
+        .filter((mod): mod is NonNullable<typeof mod> => mod !== null);
+
+      if (modifications.length > 0) {
+        const description = modifications.length === 1 ? 'Move Shape' : `Move ${modifications.length} Shapes`;
+        pushEntry({
+          type: 'MOVE_SHAPES',
+          description,
+          shapeDelta: {
+            added: [],
+            removed: [],
+            modified: modifications,
+          },
+          connectionDelta: EMPTY_CONNECTION_DELTA,
+          selectionBefore: Array.from(startPositionsRef.current.keys()),
+          selectionAfter: Array.from(startPositionsRef.current.keys()),
+        });
+      }
+    }
+
     startPointRef.current = null;
     startPositionRef.current = null;
     startPositionsRef.current.clear();
+    hasMoved.current = false;
     endManipulation();
-  }, [endManipulation]);
+  }, [endManipulation, pushEntry]);
 
   return {
     handleMoveStart,

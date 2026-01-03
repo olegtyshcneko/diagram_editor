@@ -54,39 +54,68 @@ export function useShapeManipulation({ shape }: UseShapeManipulationOptions) {
     };
   }, []);
 
+  // Store handlers in ref to avoid stale closures when callbacks change during drag
+  const handlersRef = useRef({
+    handleMoveUpdate,
+    handleMoveEnd,
+    handleResizeUpdate,
+    handleResizeEnd,
+    handleRotateUpdate,
+    handleRotateEnd,
+  });
+
+  // Keep handlers ref updated with latest callbacks
+  useEffect(() => {
+    handlersRef.current = {
+      handleMoveUpdate,
+      handleMoveEnd,
+      handleResizeUpdate,
+      handleResizeEnd,
+      handleRotateUpdate,
+      handleRotateEnd,
+    };
+  });
+
+  // Track if we're actively manipulating this shape (stable boolean to avoid re-adding listeners)
+  const isManipulatingThisShape = manipulationState?.shapeId === shape.id;
+  const manipulationType = manipulationState?.type;
+
   // Set up global mouse events during manipulation
   useEffect(() => {
     // Only handle events for this shape's manipulation
-    if (!manipulationState || manipulationState.shapeId !== shape.id) {
+    if (!isManipulatingThisShape || !manipulationType) {
       return;
     }
 
     const handleMouseMove = (e: MouseEvent) => {
       const { shift, alt } = modifiersRef.current;
+      const handlers = handlersRef.current;
 
-      switch (manipulationState.type) {
+      switch (manipulationType) {
         case 'move':
-          handleMoveUpdate(e, shift);
+          handlers.handleMoveUpdate(e, shift, alt);
           break;
         case 'resize':
-          handleResizeUpdate(e, shift, alt);
+          handlers.handleResizeUpdate(e, shift, alt);
           break;
         case 'rotate':
-          handleRotateUpdate(e, shift);
+          handlers.handleRotateUpdate(e, shift);
           break;
       }
     };
 
     const handleMouseUp = () => {
-      switch (manipulationState.type) {
+      const handlers = handlersRef.current;
+
+      switch (manipulationType) {
         case 'move':
-          handleMoveEnd();
+          handlers.handleMoveEnd();
           break;
         case 'resize':
-          handleResizeEnd();
+          handlers.handleResizeEnd();
           break;
         case 'rotate':
-          handleRotateEnd();
+          handlers.handleRotateEnd();
           break;
       }
     };
@@ -98,16 +127,7 @@ export function useShapeManipulation({ shape }: UseShapeManipulationOptions) {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [
-    manipulationState,
-    shape.id,
-    handleMoveUpdate,
-    handleMoveEnd,
-    handleResizeUpdate,
-    handleResizeEnd,
-    handleRotateUpdate,
-    handleRotateEnd,
-  ]);
+  }, [isManipulatingThisShape, manipulationType, shape.id]);
 
   // Start move on shape body drag (works with any tool)
   const onShapeMouseDown = useCallback((e: React.MouseEvent) => {

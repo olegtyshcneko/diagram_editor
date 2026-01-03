@@ -19,7 +19,8 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P5.1 | Text & Connection Fixes | **Completed** | [requirements_p5.1.md](./requirements_p5.1.md) | [spec_p5.1.md](./spec_p5.1.md) | [todo_p5.1.md](./todo_p5.1.md) |
 | P5.2 | Automatic Text Wrapping | **Completed** | [requirements_p5.2.md](./requirements_p5.2.md) | [spec_p5.2.md](./spec_p5.2.md) | [todo_p5.2.md](./todo_p5.2.md) |
 | P6 | Multi-Selection | **Completed** | [requirements_p6.md](./requirements_p6.md) | [spec_p6.md](./spec_p6.md) | [todo_p6.md](./todo_p6.md) |
-| P7 | History & Grid | Not Started | [requirements_p7.md](./requirements_p7.md) | [spec_p7.md](./spec_p7.md) | - |
+| P7 | History & Grid | **In Progress** | [requirements_p7.md](./requirements_p7.md) | [spec_p7.md](./spec_p7.md) | [todo_p7.md](./todo_p7.md) |
+| P7.1 | P7 Bug Fixes & Completion | Not Started | [requirements_p7.1.md](./requirements_p7.1.md) | [spec_p7.1.md](./spec_p7.1.md) | - |
 | P8 | Organization | Not Started | [requirements_p8.md](./requirements_p8.md) | [spec_p8.md](./spec_p8.md) | - |
 | P9 | File Operations | Not Started | [requirements_p9.md](./requirements_p9.md) | [spec_p9.md](./spec_p9.md) | - |
 
@@ -56,6 +57,9 @@ Shift+click and marquee selection, copy/paste, alignment tools.
 
 ### P7: History & Grid
 Undo/redo stack, grid display and snap, keyboard shortcuts, context menu.
+
+### P7.1: P7 Bug Fixes & Completion
+Fix context menu click actions (KI-006), fix resize/rotation history (KI-007). Complete history tracking for style changes, text edits, connection creation, alignment/distribution, z-order. Create menu bar with Edit, View, Arrange menus.
 
 ### P8: Organization
 Shape grouping, layer ordering (z-index), orthogonal/curved connections.

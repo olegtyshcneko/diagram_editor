@@ -8,6 +8,9 @@ interface PreferencesState {
   showRulers: boolean;
   sidebarOpen: boolean;
 
+  // Grid settings
+  gridSize: number;
+
   // Property panel state
   propertyPanelCollapsed: boolean;
 
@@ -16,9 +19,12 @@ interface PreferencesState {
 
   // Actions
   setShowGrid: (show: boolean) => void;
+  toggleGrid: () => void;
   setSnapToGrid: (snap: boolean) => void;
+  toggleSnapToGrid: () => void;
   setShowRulers: (show: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
+  setGridSize: (size: number) => void;
   setPropertyPanelCollapsed: (collapsed: boolean) => void;
   addRecentColor: (color: string) => void;
 }
@@ -31,17 +37,24 @@ export const usePreferencesStore = create<PreferencesState>()(
       snapToGrid: true,
       showRulers: false,
       sidebarOpen: true,
+      gridSize: 20,
       propertyPanelCollapsed: false,
       recentColors: [],
 
       // Actions
       setShowGrid: (show) => set({ showGrid: show }),
 
+      toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+
       setSnapToGrid: (snap) => set({ snapToGrid: snap }),
+
+      toggleSnapToGrid: () => set((state) => ({ snapToGrid: !state.snapToGrid })),
 
       setShowRulers: (show) => set({ showRulers: show }),
 
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
+
+      setGridSize: (size) => set({ gridSize: size }),
 
       setPropertyPanelCollapsed: (collapsed) => set({ propertyPanelCollapsed: collapsed }),
 
@@ -69,6 +82,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         snapToGrid: state.snapToGrid,
         showRulers: state.showRulers,
         sidebarOpen: state.sidebarOpen,
+        gridSize: state.gridSize,
         propertyPanelCollapsed: state.propertyPanelCollapsed,
         recentColors: state.recentColors,
       }),

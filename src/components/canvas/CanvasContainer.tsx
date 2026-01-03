@@ -10,10 +10,12 @@ import { useSelectionBox } from '@/hooks/useSelectionBox';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useConnectionCreation } from '@/hooks/useConnectionCreation';
 import { useTextEditing } from '@/hooks/useTextEditing';
+import { useContextMenu } from '@/hooks/useContextMenu';
 import { screenToCanvas } from '@/lib/geometry/viewport';
 import { findShapeAtPoint } from '@/lib/geometry/hitTest';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { CANVAS_DEFAULTS } from '@/lib/constants';
+import { ContextMenu } from '@/components/contextMenu';
 
 /**
  * Canvas container that handles all mouse, wheel, and keyboard events
@@ -55,6 +57,10 @@ export function CanvasContainer() {
   const selectionBox = useSelectionBox({ containerSize, containerRef });
   const connectionCreation = useConnectionCreation({ containerRef });
   const textEditing = useTextEditing();
+  const contextMenu = useContextMenu();
+
+  const selectedShapeIds = useDiagramStore((s) => s.selectedShapeIds);
+  const selectedConnectionIds = useDiagramStore((s) => s.selectedConnectionIds);
 
   // Wheel handler for zoom
   const handleWheel = useCallback(
@@ -308,7 +314,38 @@ export function CanvasContainer() {
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={(e) => {
+        e.preventDefault();
+
+        // Determine context menu type based on what's under the cursor
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const screenPoint = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        };
+        const canvasPoint = screenToCanvas(screenPoint, viewport, containerSize);
+        const shapesArray = Object.values(shapes);
+        const hitShape = findShapeAtPoint(canvasPoint, shapesArray);
+
+        if (hitShape) {
+          // Right-clicked on a shape
+          if (selectedShapeIds.length > 1 && selectedShapeIds.includes(hitShape.id)) {
+            // Multi-selection context menu
+            contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'multiSelect', hitShape.id);
+          } else {
+            // Single shape context menu
+            contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'shape', hitShape.id);
+          }
+        } else if (selectedConnectionIds.length > 0) {
+          // Connection context menu (if connections are selected)
+          contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'connection');
+        } else {
+          // Canvas context menu
+          contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'canvas');
+        }
+      }}
     >
       {containerSize.width > 0 && containerSize.height > 0 && (
         <Canvas
@@ -329,6 +366,14 @@ export function CanvasContainer() {
           viewport={viewport}
         />
       )}
+
+      {/* Context menu */}
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        position={contextMenu.position}
+        items={contextMenu.menuItems}
+        onClose={contextMenu.closeMenu}
+      />
     </div>
   );
 }

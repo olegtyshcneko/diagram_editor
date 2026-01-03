@@ -1,7 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { useDiagramStore } from '@/stores/diagramStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { usePreferencesStore } from '@/stores/preferencesStore';
+import { useHistory } from '@/hooks/useHistory';
 import { KEYBOARD } from '@/lib/constants';
+import { EMPTY_CONNECTION_DELTA } from '@/types/history';
+import type { Shape } from '@/types/shapes';
+import type { Connection } from '@/types/connections';
 
 export function useKeyboardShortcuts() {
   const setActiveTool = useInteractionStore((s) => s.setActiveTool);
@@ -16,15 +22,219 @@ export function useKeyboardShortcuts() {
   const selectedShapeIds = useDiagramStore((s) => s.selectedShapeIds);
   const selectedConnectionIds = useDiagramStore((s) => s.selectedConnectionIds);
   const shapes = useDiagramStore((s) => s.shapes);
+  const connections = useDiagramStore((s) => s.connections);
   const updateShape = useDiagramStore((s) => s.updateShape);
   const deleteSelectedShapes = useDiagramStore((s) => s.deleteSelectedShapes);
   const deleteSelectedConnections = useDiagramStore((s) => s.deleteSelectedConnections);
   const selectAll = useDiagramStore((s) => s.selectAll);
   const copySelection = useDiagramStore((s) => s.copySelection);
-  const cutSelection = useDiagramStore((s) => s.cutSelection);
   const pasteClipboard = useDiagramStore((s) => s.pasteClipboard);
   const duplicateSelection = useDiagramStore((s) => s.duplicateSelection);
   const clipboard = useDiagramStore((s) => s.clipboard);
+
+  const pushEntry = useHistoryStore((s) => s.pushEntry);
+  const { undo, redo } = useHistory();
+
+  const toggleGrid = usePreferencesStore((s) => s.toggleGrid);
+  const toggleSnapToGrid = usePreferencesStore((s) => s.toggleSnapToGrid);
+
+  const bringToFront = useDiagramStore((s) => s.bringToFront);
+  const sendToBack = useDiagramStore((s) => s.sendToBack);
+  const bringForward = useDiagramStore((s) => s.bringForward);
+  const sendBackward = useDiagramStore((s) => s.sendBackward);
+
+  // Paste with history tracking
+  const pasteWithHistory = useCallback(() => {
+    const selectionBefore = [...selectedShapeIds];
+
+    pasteClipboard();
+
+    // Get the newly created shapes (they are now selected)
+    const state = useDiagramStore.getState();
+    const newShapeIds = state.selectedShapeIds;
+    const addedShapes: Shape[] = newShapeIds
+      .map((id) => state.shapes[id])
+      .filter((s): s is Shape => s !== undefined);
+
+    // Also get any connections between new shapes
+    const addedConnections: Connection[] = Object.values(state.connections)
+      .filter((conn) =>
+        newShapeIds.includes(conn.sourceShapeId) &&
+        conn.targetShapeId !== null &&
+        newShapeIds.includes(conn.targetShapeId)
+      );
+
+    if (addedShapes.length > 0) {
+      const description = addedShapes.length === 1 ? 'Paste Shape' : `Paste ${addedShapes.length} Shapes`;
+      pushEntry({
+        type: 'PASTE',
+        description,
+        shapeDelta: {
+          added: addedShapes,
+          removed: [],
+          modified: [],
+        },
+        connectionDelta: {
+          added: addedConnections,
+          removed: [],
+          modified: [],
+        },
+        selectionBefore,
+        selectionAfter: newShapeIds,
+      });
+    }
+  }, [selectedShapeIds, pasteClipboard, pushEntry]);
+
+  // Duplicate with history tracking
+  const duplicateWithHistory = useCallback(() => {
+    const selectionBefore = [...selectedShapeIds];
+
+    duplicateSelection();
+
+    // Get the newly created shapes (they are now selected)
+    const state = useDiagramStore.getState();
+    const newShapeIds = state.selectedShapeIds;
+    const addedShapes: Shape[] = newShapeIds
+      .map((id) => state.shapes[id])
+      .filter((s): s is Shape => s !== undefined);
+
+    // Also get connections between new shapes
+    const addedConnections: Connection[] = Object.values(state.connections)
+      .filter((conn) =>
+        newShapeIds.includes(conn.sourceShapeId) &&
+        conn.targetShapeId !== null &&
+        newShapeIds.includes(conn.targetShapeId)
+      );
+
+    if (addedShapes.length > 0) {
+      const description = addedShapes.length === 1 ? 'Duplicate Shape' : `Duplicate ${addedShapes.length} Shapes`;
+      pushEntry({
+        type: 'DUPLICATE',
+        description,
+        shapeDelta: {
+          added: addedShapes,
+          removed: [],
+          modified: [],
+        },
+        connectionDelta: {
+          added: addedConnections,
+          removed: [],
+          modified: [],
+        },
+        selectionBefore,
+        selectionAfter: newShapeIds,
+      });
+    }
+  }, [selectedShapeIds, duplicateSelection, pushEntry]);
+
+  // Delete shapes with history tracking
+  const deleteWithHistory = useCallback(() => {
+    const hasShapes = selectedShapeIds.length > 0;
+    const hasConnections = selectedConnectionIds.length > 0;
+
+    if (!hasShapes && !hasConnections) return;
+
+    // Capture shapes and their connected connections before deletion
+    const deletedShapes: Shape[] = selectedShapeIds
+      .map((id) => shapes[id])
+      .filter((s): s is Shape => s !== undefined);
+
+    // Find connections that will be deleted (selected ones + ones connected to deleted shapes)
+    const deletedConnectionIds = new Set<string>(selectedConnectionIds);
+    Object.values(connections).forEach((conn) => {
+      if (selectedShapeIds.includes(conn.sourceShapeId) ||
+          (conn.targetShapeId && selectedShapeIds.includes(conn.targetShapeId))) {
+        deletedConnectionIds.add(conn.id);
+      }
+    });
+
+    const deletedConnections: Connection[] = Array.from(deletedConnectionIds)
+      .map((id) => connections[id])
+      .filter((c): c is Connection => c !== undefined);
+
+    // Execute deletion
+    if (hasConnections) {
+      deleteSelectedConnections();
+    }
+    if (hasShapes) {
+      deleteSelectedShapes();
+    }
+
+    // Push history entry
+    const description = hasShapes
+      ? deletedShapes.length === 1
+        ? 'Delete Shape'
+        : `Delete ${deletedShapes.length} Shapes`
+      : deletedConnections.length === 1
+        ? 'Delete Connection'
+        : `Delete ${deletedConnections.length} Connections`;
+
+    pushEntry({
+      type: 'DELETE_SHAPES',
+      description,
+      shapeDelta: {
+        added: [],
+        removed: deletedShapes,
+        modified: [],
+      },
+      connectionDelta: {
+        added: [],
+        removed: deletedConnections,
+        modified: [],
+      },
+      selectionBefore: selectedShapeIds,
+      selectionAfter: [],
+    });
+  }, [selectedShapeIds, selectedConnectionIds, shapes, connections, deleteSelectedShapes, deleteSelectedConnections, pushEntry]);
+
+  // Cut with history tracking (copy then delete with history)
+  const cutWithHistory = useCallback(() => {
+    copySelection();
+    deleteWithHistory();
+  }, [copySelection, deleteWithHistory]);
+
+  // Z-order with history tracking
+  const zOrderWithHistory = useCallback((
+    action: 'bringToFront' | 'sendToBack' | 'bringForward' | 'sendBackward'
+  ) => {
+    // Capture zIndex before
+    const beforeZIndexes = selectedShapeIds.map((id) => ({
+      id,
+      before: { zIndex: shapes[id].zIndex },
+    }));
+
+    // Perform action
+    switch (action) {
+      case 'bringToFront': bringToFront(); break;
+      case 'sendToBack': sendToBack(); break;
+      case 'bringForward': bringForward(); break;
+      case 'sendBackward': sendBackward(); break;
+    }
+
+    // Capture zIndex after
+    const state = useDiagramStore.getState();
+    const modifications = beforeZIndexes.map(({ id, before }) => ({
+      id,
+      before,
+      after: { zIndex: state.shapes[id].zIndex },
+    }));
+
+    const descriptions: Record<string, string> = {
+      bringToFront: 'Bring to Front',
+      sendToBack: 'Send to Back',
+      bringForward: 'Bring Forward',
+      sendBackward: 'Send Backward',
+    };
+
+    pushEntry({
+      type: 'Z_ORDER',
+      description: descriptions[action],
+      shapeDelta: { added: [], removed: [], modified: modifications },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore: selectedShapeIds,
+      selectionAfter: selectedShapeIds,
+    });
+  }, [selectedShapeIds, shapes, bringToFront, sendToBack, bringForward, sendBackward, pushEntry]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,8 +255,22 @@ export function useKeyboardShortcuts() {
       const isCreatingConnection = connectionCreationState !== null;
       const ctrlOrMeta = e.ctrlKey || e.metaKey;
 
-      // Clipboard shortcuts (only when not editing text)
+      // Clipboard and edit shortcuts (only when not editing text)
       if (!isEditingText && ctrlOrMeta) {
+        // Undo - Ctrl+Z
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          undo();
+          return;
+        }
+
+        // Redo - Ctrl+Y or Ctrl+Shift+Z
+        if (e.key === 'y' || (e.key === 'z' && e.shiftKey) || (e.key === 'Z' && e.shiftKey)) {
+          e.preventDefault();
+          redo();
+          return;
+        }
+
         // Select All - Ctrl+A
         if (e.key === 'a') {
           e.preventDefault();
@@ -61,25 +285,70 @@ export function useKeyboardShortcuts() {
           return;
         }
 
-        // Cut - Ctrl+X
+        // Cut - Ctrl+X (with history)
         if (e.key === 'x' && hasSelection) {
           e.preventDefault();
-          cutSelection();
+          cutWithHistory();
           return;
         }
 
-        // Paste - Ctrl+V
+        // Paste - Ctrl+V (with history)
         if (e.key === 'v' && clipboard) {
           e.preventDefault();
-          pasteClipboard();
+          pasteWithHistory();
           return;
         }
 
-        // Duplicate - Ctrl+D
+        // Duplicate - Ctrl+D (with history)
         if (e.key === 'd' && hasSelection) {
           e.preventDefault();
-          duplicateSelection();
+          duplicateWithHistory();
           return;
+        }
+
+        // Toggle grid visibility - Ctrl+G
+        if (e.key === 'g' && !e.shiftKey) {
+          e.preventDefault();
+          toggleGrid();
+          return;
+        }
+
+        // Toggle snap to grid - Ctrl+Shift+G
+        if ((e.key === 'g' || e.key === 'G') && e.shiftKey) {
+          e.preventDefault();
+          toggleSnapToGrid();
+          return;
+        }
+
+        // Z-order shortcuts (only when shapes are selected)
+        if (hasSelection) {
+          // Bring to Front - Ctrl+Shift+]
+          if ((e.key === ']' || e.key === '}') && e.shiftKey) {
+            e.preventDefault();
+            zOrderWithHistory('bringToFront');
+            return;
+          }
+
+          // Send to Back - Ctrl+Shift+[
+          if ((e.key === '[' || e.key === '{') && e.shiftKey) {
+            e.preventDefault();
+            zOrderWithHistory('sendToBack');
+            return;
+          }
+
+          // Bring Forward - Ctrl+]
+          if (e.key === ']' && !e.shiftKey) {
+            e.preventDefault();
+            zOrderWithHistory('bringForward');
+            return;
+          }
+
+          // Send Backward - Ctrl+[
+          if (e.key === '[' && !e.shiftKey) {
+            e.preventDefault();
+            zOrderWithHistory('sendBackward');
+            return;
+          }
         }
       }
 
@@ -120,15 +389,10 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      // Delete/Backspace - shapes or connections
+      // Delete/Backspace - shapes or connections (with history)
       if ((hasSelection || hasConnectionSelection) && (e.key === 'Delete' || e.key === 'Backspace')) {
         e.preventDefault();
-        if (hasConnectionSelection) {
-          deleteSelectedConnections();
-        }
-        if (hasSelection) {
-          deleteSelectedShapes();
-        }
+        deleteWithHistory();
         return;
       }
 
@@ -182,13 +446,17 @@ export function useKeyboardShortcuts() {
     selectedConnectionIds,
     shapes,
     updateShape,
-    deleteSelectedShapes,
-    deleteSelectedConnections,
+    deleteWithHistory,
     selectAll,
     copySelection,
-    cutSelection,
-    pasteClipboard,
-    duplicateSelection,
+    cutWithHistory,
+    pasteWithHistory,
+    duplicateWithHistory,
     clipboard,
+    undo,
+    redo,
+    toggleGrid,
+    toggleSnapToGrid,
+    zOrderWithHistory,
   ]);
 }

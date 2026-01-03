@@ -9,6 +9,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDiagramStore } from '@/stores/diagramStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { EMPTY_CONNECTION_DELTA } from '@/types/history';
 import type { SelectedShapeProperties } from '@/hooks/useSelectedShapes';
 import type { StrokeStyle } from '@/types/shapes';
 import { isTransparent } from '@/lib/color-utils';
@@ -23,6 +25,8 @@ const STROKE_WIDTH_PRESETS = [1, 2, 3, 4, 6, 8];
 
 export function StrokeSection({ selectedShapeIds, properties }: StrokeSectionProps) {
   const updateShape = useDiagramStore((s) => s.updateShape);
+  const shapes = useDiagramStore((s) => s.shapes);
+  const pushEntry = useHistoryStore((s) => s.pushEntry);
 
   // Get current values (use first value if mixed)
   const currentStroke = properties.stroke === 'mixed' ? '#000000' : properties.stroke;
@@ -33,20 +37,74 @@ export function StrokeSection({ selectedShapeIds, properties }: StrokeSectionPro
   const hasNoStroke = isTransparent(currentStroke);
 
   const handleStrokeColorChange = (color: string) => {
+    // Capture before state
+    const modifications = selectedShapeIds.map((id) => ({
+      id,
+      before: { stroke: shapes[id].stroke },
+      after: { stroke: color },
+    }));
+
+    // Apply changes
     selectedShapeIds.forEach((id) => {
       updateShape(id, { stroke: color });
+    });
+
+    // Push history entry
+    pushEntry({
+      type: 'UPDATE_STYLE',
+      description: 'Change Stroke Color',
+      shapeDelta: { added: [], removed: [], modified: modifications },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore: selectedShapeIds,
+      selectionAfter: selectedShapeIds,
     });
   };
 
   const handleStrokeWidthChange = (width: number) => {
+    // Capture before state
+    const modifications = selectedShapeIds.map((id) => ({
+      id,
+      before: { strokeWidth: shapes[id].strokeWidth },
+      after: { strokeWidth: width },
+    }));
+
+    // Apply changes
     selectedShapeIds.forEach((id) => {
       updateShape(id, { strokeWidth: width });
+    });
+
+    // Push history entry
+    pushEntry({
+      type: 'UPDATE_STYLE',
+      description: 'Change Stroke Width',
+      shapeDelta: { added: [], removed: [], modified: modifications },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore: selectedShapeIds,
+      selectionAfter: selectedShapeIds,
     });
   };
 
   const handleStrokeStyleChange = (style: string) => {
+    // Capture before state
+    const modifications = selectedShapeIds.map((id) => ({
+      id,
+      before: { strokeStyle: shapes[id].strokeStyle },
+      after: { strokeStyle: style as StrokeStyle },
+    }));
+
+    // Apply changes
     selectedShapeIds.forEach((id) => {
       updateShape(id, { strokeStyle: style as StrokeStyle });
+    });
+
+    // Push history entry
+    pushEntry({
+      type: 'UPDATE_STYLE',
+      description: 'Change Stroke Style',
+      shapeDelta: { added: [], removed: [], modified: modifications },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore: selectedShapeIds,
+      selectionAfter: selectedShapeIds,
     });
   };
 

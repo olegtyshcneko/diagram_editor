@@ -15,6 +15,12 @@ import {
   canDistributeHorizontally,
   canDistributeVertically,
 } from '@/lib/geometry/distribution';
+import {
+  calculateBringToFront,
+  calculateSendToBack,
+  calculateBringForward,
+  calculateSendBackward,
+} from '@/lib/geometry/zOrder';
 
 const PASTE_OFFSET = 20;
 
@@ -77,6 +83,12 @@ interface DiagramState {
   // Alignment/distribution actions (to be implemented in later step)
   alignShapes: (alignment: AlignmentType) => void;
   distributeShapes: (direction: 'horizontal' | 'vertical') => void;
+
+  // Z-order actions
+  bringToFront: () => void;
+  sendToBack: () => void;
+  bringForward: () => void;
+  sendBackward: () => void;
 }
 
 export const useDiagramStore = create<DiagramState>()((set, get) => ({
@@ -576,6 +588,87 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
             ...(update.x !== undefined && { x: update.x }),
             ...(update.y !== undefined && { y: update.y }),
           };
+        }
+      }
+      return { shapes: newShapes, isDirty: true };
+    });
+  },
+
+  // Z-order actions
+  bringToFront: () => {
+    const { shapes, selectedShapeIds } = get();
+    if (selectedShapeIds.length === 0) return;
+
+    const allShapes = Object.values(shapes);
+    const updates = calculateBringToFront(allShapes, selectedShapeIds);
+
+    if (updates.length === 0) return;
+
+    set((state) => {
+      const newShapes = { ...state.shapes };
+      for (const update of updates) {
+        if (newShapes[update.id]) {
+          newShapes[update.id] = { ...newShapes[update.id], zIndex: update.zIndex };
+        }
+      }
+      return { shapes: newShapes, isDirty: true };
+    });
+  },
+
+  sendToBack: () => {
+    const { shapes, selectedShapeIds } = get();
+    if (selectedShapeIds.length === 0) return;
+
+    const allShapes = Object.values(shapes);
+    const updates = calculateSendToBack(allShapes, selectedShapeIds);
+
+    if (updates.length === 0) return;
+
+    set((state) => {
+      const newShapes = { ...state.shapes };
+      for (const update of updates) {
+        if (newShapes[update.id]) {
+          newShapes[update.id] = { ...newShapes[update.id], zIndex: update.zIndex };
+        }
+      }
+      return { shapes: newShapes, isDirty: true };
+    });
+  },
+
+  bringForward: () => {
+    const { shapes, selectedShapeIds } = get();
+    if (selectedShapeIds.length === 0) return;
+
+    const allShapes = Object.values(shapes);
+    const updates = calculateBringForward(allShapes, selectedShapeIds);
+
+    if (updates.length === 0) return;
+
+    set((state) => {
+      const newShapes = { ...state.shapes };
+      for (const update of updates) {
+        if (newShapes[update.id]) {
+          newShapes[update.id] = { ...newShapes[update.id], zIndex: update.zIndex };
+        }
+      }
+      return { shapes: newShapes, isDirty: true };
+    });
+  },
+
+  sendBackward: () => {
+    const { shapes, selectedShapeIds } = get();
+    if (selectedShapeIds.length === 0) return;
+
+    const allShapes = Object.values(shapes);
+    const updates = calculateSendBackward(allShapes, selectedShapeIds);
+
+    if (updates.length === 0) return;
+
+    set((state) => {
+      const newShapes = { ...state.shapes };
+      for (const update of updates) {
+        if (newShapes[update.id]) {
+          newShapes[update.id] = { ...newShapes[update.id], zIndex: update.zIndex };
         }
       }
       return { shapes: newShapes, isDirty: true };

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { useViewportStore } from '@/stores/viewportStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { EMPTY_SHAPE_DELTA } from '@/types/history';
 import type { AnchorPosition } from '@/types/connections';
 import type { Point } from '@/types/common';
 import { findNearestAnchor, getAnchorPosition } from '@/lib/geometry/connection';
@@ -16,6 +18,8 @@ export function useConnectionCreation({
 }: UseConnectionCreationProps) {
   const shapes = useDiagramStore((s) => s.shapes);
   const addConnection = useDiagramStore((s) => s.addConnection);
+  const pushEntry = useHistoryStore((s) => s.pushEntry);
+  const selectedShapeIds = useDiagramStore((s) => s.selectedShapeIds);
 
   const activeTool = useInteractionStore((s) => s.activeTool);
   const connectionCreationState = useInteractionStore(
@@ -117,17 +121,42 @@ export function useConnectionCreation({
 
       // Create connection if valid target found
       if (targetShapeId && targetAnchor) {
+        // Capture selection before (connection creation clears it)
+        const selectionBefore = [...selectedShapeIds];
+
         addConnection({
           sourceShapeId: connectionCreationState.sourceShapeId,
           sourceAnchor: connectionCreationState.sourceAnchor,
           targetShapeId,
           targetAnchor,
         });
+
+        // Get the created connection (it's auto-selected after creation)
+        const state = useDiagramStore.getState();
+        const newConnectionId = state.selectedConnectionIds[0];
+        const createdConnection = newConnectionId
+          ? state.connections[newConnectionId]
+          : null;
+
+        if (createdConnection) {
+          pushEntry({
+            type: 'CREATE_CONNECTION',
+            description: 'Create Connection',
+            shapeDelta: EMPTY_SHAPE_DELTA,
+            connectionDelta: {
+              added: [createdConnection],
+              removed: [],
+              modified: [],
+            },
+            selectionBefore,
+            selectionAfter: [], // Connections selected, not shapes
+          });
+        }
       }
 
       endConnectionCreation();
     },
-    [connectionCreationState, screenToCanvas, shapes, addConnection, endConnectionCreation, viewport.zoom]
+    [connectionCreationState, screenToCanvas, shapes, addConnection, endConnectionCreation, viewport.zoom, pushEntry, selectedShapeIds]
   );
 
   // Handle escape to cancel connection creation

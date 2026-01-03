@@ -1,8 +1,9 @@
 import { useViewportStore } from '@/stores/viewportStore';
 import { useInteractionStore } from '@/stores/interactionStore';
+import { usePreferencesStore } from '@/stores/preferencesStore';
 
 /**
- * Status bar component displaying zoom level and cursor position.
+ * Status bar component displaying zoom level, cursor position, grid/snap status.
  * Reads cursor position from interactionStore (updated by CanvasContainer).
  */
 export function StatusBar() {
@@ -10,6 +11,10 @@ export function StatusBar() {
   const resetZoom = useViewportStore((s) => s.resetZoom);
   const resetView = useViewportStore((s) => s.resetView);
   const cursorCanvasPosition = useInteractionStore((s) => s.cursorCanvasPosition);
+  const showGrid = usePreferencesStore((s) => s.showGrid);
+  const snapToGrid = usePreferencesStore((s) => s.snapToGrid);
+  const toggleGrid = usePreferencesStore((s) => s.toggleGrid);
+  const toggleSnapToGrid = usePreferencesStore((s) => s.toggleSnapToGrid);
 
   const zoomPercentage = Math.round(viewport.zoom * 100);
 
@@ -26,6 +31,22 @@ export function StatusBar() {
       <span>
         Position: {cursorCanvasPosition.x}, {cursorCanvasPosition.y}
       </span>
+      <span className="mx-4 text-gray-300">|</span>
+      <button
+        onClick={toggleGrid}
+        className={`hover:text-gray-800 ${showGrid ? 'text-gray-700 font-medium' : 'text-gray-400'}`}
+        title="Toggle grid visibility (Ctrl+G)"
+      >
+        Grid: {showGrid ? 'On' : 'Off'}
+      </button>
+      <span className="mx-4 text-gray-300">|</span>
+      <button
+        onClick={toggleSnapToGrid}
+        className={`hover:text-gray-800 ${snapToGrid ? 'text-gray-700 font-medium' : 'text-gray-400'}`}
+        title="Toggle snap to grid (Ctrl+Shift+G)"
+      >
+        Snap: {snapToGrid ? 'On' : 'Off'}
+      </button>
       <span className="mx-4 text-gray-300">|</span>
       <button
         onClick={resetView}

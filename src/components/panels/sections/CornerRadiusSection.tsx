@@ -2,6 +2,8 @@ import { NumberInput } from '@/components/ui/NumberInput';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { useDiagramStore } from '@/stores/diagramStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { EMPTY_CONNECTION_DELTA } from '@/types/history';
 import type { SelectedShapeProperties } from '@/hooks/useSelectedShapes';
 
 interface CornerRadiusSectionProps {
@@ -17,6 +19,7 @@ export function CornerRadiusSection({
 }: CornerRadiusSectionProps) {
   const updateShape = useDiagramStore((s) => s.updateShape);
   const shapes = useDiagramStore((s) => s.shapes);
+  const pushEntry = useHistoryStore((s) => s.pushEntry);
 
   // Only update rectangles
   const rectangleIds = selectedShapeIds.filter(
@@ -28,9 +31,30 @@ export function CornerRadiusSection({
 
   const handleRadiusChange = (value: number) => {
     const clampedValue = Math.max(0, Math.min(maxRadius, Math.round(value)));
+
+    // Capture before state for rectangles only
+    const modifications = rectangleIds.map((id) => ({
+      id,
+      before: { cornerRadius: shapes[id].cornerRadius },
+      after: { cornerRadius: clampedValue },
+    }));
+
+    // Apply changes
     rectangleIds.forEach((id) => {
       updateShape(id, { cornerRadius: clampedValue });
     });
+
+    // Push history entry
+    if (modifications.length > 0) {
+      pushEntry({
+        type: 'UPDATE_STYLE',
+        description: 'Change Corner Radius',
+        shapeDelta: { added: [], removed: [], modified: modifications },
+        connectionDelta: EMPTY_CONNECTION_DELTA,
+        selectionBefore: selectedShapeIds,
+        selectionAfter: selectedShapeIds,
+      });
+    }
   };
 
   const handleSliderChange = (values: number[]) => {
