@@ -6,3 +6,4 @@ export { StrokeSection } from './StrokeSection';
 export { CornerRadiusSection } from './CornerRadiusSection';
 export { TextSection } from './TextSection';
 export { ConnectionSection } from './ConnectionSection';
+export { ArrangementSection } from './ArrangementSection';

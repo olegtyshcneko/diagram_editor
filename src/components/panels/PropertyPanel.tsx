@@ -14,6 +14,7 @@ import {
   CornerRadiusSection,
   TextSection,
   ConnectionSection,
+  ArrangementSection,
 } from './sections';
 
 export function PropertyPanel() {
@@ -149,6 +150,14 @@ export function PropertyPanel() {
 
             {/* Text */}
             <TextSection selectedShapeIds={selectedShapeIds} />
+
+            {/* Arrangement (only for multi-selection) */}
+            {selectedCount >= 2 && (
+              <>
+                <Separator />
+                <ArrangementSection selectedCount={selectedCount} />
+              </>
+            )}
           </div>
         ) : null}
       </div>

@@ -6,10 +6,13 @@ import { useInteractionStore } from '@/stores/interactionStore';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { useShapeCreation } from '@/hooks/useShapeCreation';
 import { useSelection } from '@/hooks/useSelection';
+import { useSelectionBox } from '@/hooks/useSelectionBox';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useConnectionCreation } from '@/hooks/useConnectionCreation';
 import { useTextEditing } from '@/hooks/useTextEditing';
 import { screenToCanvas } from '@/lib/geometry/viewport';
+import { findShapeAtPoint } from '@/lib/geometry/hitTest';
+import { useDiagramStore } from '@/stores/diagramStore';
 import { CANVAS_DEFAULTS } from '@/lib/constants';
 
 /**
@@ -41,11 +44,15 @@ export function CanvasContainer() {
   // Shape hover tracking for connection anchors
   const [hoveredShapeId, setHoveredShapeId] = useState<string | null>(null);
 
+  // Get shapes for hit testing
+  const shapes = useDiagramStore((s) => s.shapes);
+
   // Initialize hooks for shape creation, selection, connections, and keyboard shortcuts
   useKeyboardShortcuts();
 
   const shapeCreation = useShapeCreation({ containerSize });
   const selection = useSelection({ containerSize });
+  const selectionBox = useSelectionBox({ containerSize, containerRef });
   const connectionCreation = useConnectionCreation({ containerRef });
   const textEditing = useTextEditing();
 
@@ -97,10 +104,19 @@ export function CanvasContainer() {
         return;
       }
 
-      // Select tool - selection is handled on click, not mousedown
-      // (to distinguish from potential drag operations)
+      // Select tool - start selection box if clicking on empty canvas
+      if (activeTool === 'select') {
+        const canvasPoint = screenToCanvas(screenPoint, viewport, containerSize);
+        const shapesArray = Object.values(shapes);
+        const hitShape = findShapeAtPoint(canvasPoint, shapesArray);
+
+        // Only start selection box if not clicking on a shape
+        if (!hitShape) {
+          selectionBox.handleSelectionBoxStart(screenPoint, e.shiftKey || e.ctrlKey || e.metaKey);
+        }
+      }
     },
-    [spacebarHeld, startPan, activeTool, shapeCreation]
+    [spacebarHeld, startPan, activeTool, shapeCreation, viewport, containerSize, shapes, selectionBox]
   );
 
   // Mouse move handler for pan, shape creation, and cursor position
@@ -156,7 +172,8 @@ export function CanvasContainer() {
       }
 
       // Handle selection on mouse up (click) for select tool
-      if (activeTool === 'select' && e.button === 0) {
+      // Skip if selection box is active (it handles its own selection)
+      if (activeTool === 'select' && e.button === 0 && !selectionBox.isSelecting) {
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;
 
@@ -167,7 +184,7 @@ export function CanvasContainer() {
         selection.handleCanvasClick(screenPoint);
       }
     },
-    [isPanning, endPan, shapeCreation, manipulationState, activeTool, selection]
+    [isPanning, endPan, shapeCreation, manipulationState, activeTool, selection, selectionBox.isSelecting]
   );
 
   // Global mouse up (in case mouse is released outside canvas while dragging)
@@ -275,6 +292,7 @@ export function CanvasContainer() {
     if (isPanning) return 'grabbing';
     if (spacebarHeld) return 'grab';
     if (shapeCreation.isCreating) return 'crosshair';
+    if (selectionBox.isSelecting) return 'crosshair';
     if (connectionCreation.isCreatingConnection) return 'crosshair';
     if (activeTool === 'rectangle' || activeTool === 'ellipse') return 'crosshair';
     if (activeTool === 'connection') return 'crosshair';

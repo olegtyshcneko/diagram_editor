@@ -7,6 +7,7 @@ import { useInteractionStore } from '@/stores/interactionStore';
 import { ShapeLayer } from '@/components/shapes/ShapeLayer';
 import { ConnectionLayer, AnchorPointsOverlay } from '@/components/connections';
 import { CreationPreview } from './CreationPreview';
+import { SelectionBoxLayer } from './SelectionBoxLayer';
 import { RotationAngleDisplay } from './RotationAngleDisplay';
 
 interface CanvasProps {
@@ -77,6 +78,9 @@ export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
 
         {/* Preview during shape creation */}
         {creationState && <CreationPreview creationState={creationState} />}
+
+        {/* Selection box during marquee selection */}
+        <SelectionBoxLayer />
 
         {/* Rotation angle display during rotation */}
         <RotationAngleDisplay />

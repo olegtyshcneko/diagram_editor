@@ -5,6 +5,7 @@ import type { ShapeType } from '@/types/shapes';
 import type { CreationState } from '@/types/creation';
 import type { ManipulationState } from '@/types/interaction';
 import type { AnchorPosition, ConnectionCreationState } from '@/types/connections';
+import type { SelectionBoxState } from '@/types/selection';
 
 interface InteractionState {
   // Tools
@@ -24,6 +25,9 @@ interface InteractionState {
 
   // Connection creation state
   connectionCreationState: ConnectionCreationState | null;
+
+  // Selection box state (marquee selection)
+  selectionBoxState: SelectionBoxState | null;
 
   // Actions
   setActiveTool: (tool: Tool) => void;
@@ -49,6 +53,11 @@ interface InteractionState {
   ) => void;
   updateConnectionCreation: (currentPoint: Point) => void;
   endConnectionCreation: () => void;
+
+  // Selection box actions
+  startSelectionBox: (startPoint: Point, isShiftHeld: boolean) => void;
+  updateSelectionBox: (currentPoint: Point) => void;
+  endSelectionBox: () => void;
 }
 
 export const useInteractionStore = create<InteractionState>()((set) => ({
@@ -64,6 +73,8 @@ export const useInteractionStore = create<InteractionState>()((set) => ({
   editingTextShapeId: null,
 
   connectionCreationState: null,
+
+  selectionBoxState: null,
 
   // Actions
   setActiveTool: (tool) => set({ activeTool: tool }),
@@ -117,4 +128,23 @@ export const useInteractionStore = create<InteractionState>()((set) => ({
     })),
 
   endConnectionCreation: () => set({ connectionCreationState: null }),
+
+  // Selection box actions
+  startSelectionBox: (startPoint, isShiftHeld) =>
+    set({
+      selectionBoxState: {
+        startPoint,
+        currentPoint: startPoint,
+        isShiftHeld,
+      },
+    }),
+
+  updateSelectionBox: (currentPoint) =>
+    set((state) => ({
+      selectionBoxState: state.selectionBoxState
+        ? { ...state.selectionBoxState, currentPoint }
+        : null,
+    })),
+
+  endSelectionBox: () => set({ selectionBoxState: null }),
 }));

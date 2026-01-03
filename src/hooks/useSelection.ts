@@ -16,7 +16,6 @@ export function useSelection({ containerSize }: UseSelectionProps) {
   const activeTool = useInteractionStore((s) => s.activeTool);
   const shapes = useDiagramStore((s) => s.shapes);
   const connections = useDiagramStore((s) => s.connections);
-  const selectShape = useDiagramStore((s) => s.selectShape);
   const setSelectedConnectionIds = useDiagramStore((s) => s.setSelectedConnectionIds);
   const clearSelection = useDiagramStore((s) => s.clearSelection);
 
@@ -44,17 +43,18 @@ export function useSelection({ containerSize }: UseSelectionProps) {
         }
       }
 
-      // Then check shapes
+      // Check if clicked on a shape - if so, Shape.tsx already handled selection
+      // on mouseDown with proper modifier key support (Ctrl/Shift+click)
       const shapesArray = Object.values(shapes);
       const hitShape = findShapeAtPoint(canvasPoint, shapesArray);
 
-      if (hitShape) {
-        selectShape(hitShape.id);
-      } else {
+      // Only clear selection if clicked on empty canvas (no shape hit)
+      // Shape clicks are handled by Shape.tsx mouseDown with multi-select support
+      if (!hitShape) {
         clearSelection();
       }
     },
-    [activeTool, viewport, containerSize, shapes, connections, selectShape, setSelectedConnectionIds, clearSelection]
+    [activeTool, viewport, containerSize, shapes, connections, setSelectedConnectionIds, clearSelection]
   );
 
   return { handleCanvasClick };

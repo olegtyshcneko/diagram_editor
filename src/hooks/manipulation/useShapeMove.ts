@@ -11,9 +11,12 @@ interface UseMoveOptions {
 
 /**
  * Hook for handling shape move operations.
+ * Moves ALL selected shapes together when dragging any selected shape.
  * Manages drag-to-move with optional axis constraints.
  */
 export function useShapeMove({ shapeId }: UseMoveOptions) {
+  const shapes = useDiagramStore((s) => s.shapes);
+  const selectedShapeIds = useDiagramStore((s) => s.selectedShapeIds);
   const updateShape = useDiagramStore((s) => s.updateShape);
   const viewport = useViewportStore((s) => s.viewport);
   const startManipulation = useInteractionStore((s) => s.startManipulation);
@@ -22,9 +25,12 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
   // Refs to store start state (avoids stale closures)
   const startPointRef = useRef<Point | null>(null);
   const startPositionRef = useRef<Point | null>(null);
+  // Store start positions of ALL selected shapes for multi-move
+  const startPositionsRef = useRef<Map<string, Point>>(new Map());
 
   /**
    * Start a move operation
+   * Stores start positions for ALL selected shapes to enable multi-move
    */
   const handleMoveStart = useCallback((
     e: React.MouseEvent,
@@ -35,6 +41,16 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
     startPointRef.current = { x: e.clientX, y: e.clientY };
     startPositionRef.current = { x: bounds.x, y: bounds.y };
 
+    // Store start positions for all selected shapes
+    const positions = new Map<string, Point>();
+    for (const id of selectedShapeIds) {
+      const shape = shapes[id];
+      if (shape && !shape.locked) {
+        positions.set(id, { x: shape.x, y: shape.y });
+      }
+    }
+    startPositionsRef.current = positions;
+
     startManipulation({
       type: 'move',
       shapeId,
@@ -42,16 +58,17 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
       startBounds: bounds,
       startRotation: 0,
     });
-  }, [shapeId, startManipulation]);
+  }, [shapeId, selectedShapeIds, shapes, startManipulation]);
 
   /**
    * Update position during move
+   * Moves ALL selected shapes by the same delta
    */
   const handleMoveUpdate = useCallback((
     e: MouseEvent,
     shiftHeld: boolean
   ) => {
-    if (!startPointRef.current || !startPositionRef.current) return;
+    if (!startPointRef.current) return;
 
     // Calculate delta in screen space
     let delta: Point = {
@@ -70,12 +87,13 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
       y: delta.y / viewport.zoom,
     };
 
-    // Calculate new position from start position + delta (not accumulating)
-    const newX = Math.round(startPositionRef.current.x + scaledDelta.x);
-    const newY = Math.round(startPositionRef.current.y + scaledDelta.y);
-
-    updateShape(shapeId, { x: newX, y: newY });
-  }, [shapeId, viewport.zoom, updateShape]);
+    // Update ALL selected shapes with the same delta
+    startPositionsRef.current.forEach((startPos, id) => {
+      const newX = Math.round(startPos.x + scaledDelta.x);
+      const newY = Math.round(startPos.y + scaledDelta.y);
+      updateShape(id, { x: newX, y: newY });
+    });
+  }, [viewport.zoom, updateShape]);
 
   /**
    * End the move operation
@@ -83,6 +101,7 @@ export function useShapeMove({ shapeId }: UseMoveOptions) {
   const handleMoveEnd = useCallback(() => {
     startPointRef.current = null;
     startPositionRef.current = null;
+    startPositionsRef.current.clear();
     endManipulation();
   }, [endManipulation]);
 

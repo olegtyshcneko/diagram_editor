@@ -19,6 +19,12 @@ export function useKeyboardShortcuts() {
   const updateShape = useDiagramStore((s) => s.updateShape);
   const deleteSelectedShapes = useDiagramStore((s) => s.deleteSelectedShapes);
   const deleteSelectedConnections = useDiagramStore((s) => s.deleteSelectedConnections);
+  const selectAll = useDiagramStore((s) => s.selectAll);
+  const copySelection = useDiagramStore((s) => s.copySelection);
+  const cutSelection = useDiagramStore((s) => s.cutSelection);
+  const pasteClipboard = useDiagramStore((s) => s.pasteClipboard);
+  const duplicateSelection = useDiagramStore((s) => s.duplicateSelection);
+  const clipboard = useDiagramStore((s) => s.clipboard);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,6 +43,45 @@ export function useKeyboardShortcuts() {
       const hasConnectionSelection = selectedConnectionIds.length > 0;
       const isEditingText = editingTextShapeId !== null;
       const isCreatingConnection = connectionCreationState !== null;
+      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+
+      // Clipboard shortcuts (only when not editing text)
+      if (!isEditingText && ctrlOrMeta) {
+        // Select All - Ctrl+A
+        if (e.key === 'a') {
+          e.preventDefault();
+          selectAll();
+          return;
+        }
+
+        // Copy - Ctrl+C
+        if (e.key === 'c' && hasSelection) {
+          e.preventDefault();
+          copySelection();
+          return;
+        }
+
+        // Cut - Ctrl+X
+        if (e.key === 'x' && hasSelection) {
+          e.preventDefault();
+          cutSelection();
+          return;
+        }
+
+        // Paste - Ctrl+V
+        if (e.key === 'v' && clipboard) {
+          e.preventDefault();
+          pasteClipboard();
+          return;
+        }
+
+        // Duplicate - Ctrl+D
+        if (e.key === 'd' && hasSelection) {
+          e.preventDefault();
+          duplicateSelection();
+          return;
+        }
+      }
 
       // Arrow key movement
       if (hasSelection && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -139,5 +184,11 @@ export function useKeyboardShortcuts() {
     updateShape,
     deleteSelectedShapes,
     deleteSelectedConnections,
+    selectAll,
+    copySelection,
+    cutSelection,
+    pasteClipboard,
+    duplicateSelection,
+    clipboard,
   ]);
 }

@@ -33,13 +33,21 @@ export const Shape = memo(function Shape({
 
     e.stopPropagation();
 
-    // If not selected, select first (with Shift for multi-select)
+    const isMultiSelectModifier = e.shiftKey || e.ctrlKey || e.metaKey;
+
+    // If not selected, select first (with Shift/Ctrl for multi-select)
     if (!isSelected) {
-      onSelect(shape.id, e.shiftKey);
+      onSelect(shape.id, isMultiSelectModifier);
       return;
     }
 
-    // If already selected, start move
+    // If already selected with modifier, toggle selection (remove from selection)
+    if (isMultiSelectModifier) {
+      onSelect(shape.id, true); // This will toggle it off
+      return;
+    }
+
+    // If already selected without modifier, start move
     onShapeMouseDown(e);
   }, [activeTool, shape.id, isSelected, onSelect, onShapeMouseDown]);
 

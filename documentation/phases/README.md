@@ -18,7 +18,7 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P5 | Text & Connections | **Completed** | [requirements_p5.md](./requirements_p5.md) | [spec_p5.md](./spec_p5.md) | [todo_p5.md](./todo_p5.md) |
 | P5.1 | Text & Connection Fixes | **Completed** | [requirements_p5.1.md](./requirements_p5.1.md) | [spec_p5.1.md](./spec_p5.1.md) | [todo_p5.1.md](./todo_p5.1.md) |
 | P5.2 | Automatic Text Wrapping | **Completed** | [requirements_p5.2.md](./requirements_p5.2.md) | [spec_p5.2.md](./spec_p5.2.md) | [todo_p5.2.md](./todo_p5.2.md) |
-| P6 | Multi-Selection | Not Started | [requirements_p6.md](./requirements_p6.md) | [spec_p6.md](./spec_p6.md) | - |
+| P6 | Multi-Selection | **Completed** | [requirements_p6.md](./requirements_p6.md) | [spec_p6.md](./spec_p6.md) | [todo_p6.md](./todo_p6.md) |
 | P7 | History & Grid | Not Started | [requirements_p7.md](./requirements_p7.md) | [spec_p7.md](./spec_p7.md) | - |
 | P8 | Organization | Not Started | [requirements_p8.md](./requirements_p8.md) | [spec_p8.md](./spec_p8.md) | - |
 | P9 | File Operations | Not Started | [requirements_p9.md](./requirements_p9.md) | [spec_p9.md](./spec_p9.md) | - |
@@ -144,3 +144,18 @@ Save/load JSON, export to PNG/SVG, import from files.
 - Removed clipPath (replaced by proper wrapping)
 - Known issue added: KI-005 (ellipse text uses rectangular bounds)
 - 1 new file created (text.ts), 1 file modified (ShapeText.tsx)
+
+### P6 - Completed
+- Multi-selection: Shift+click and Ctrl+click toggle shapes in selection
+- Selection box (marquee): Drag on empty canvas to select multiple shapes
+- Shift + selection box adds to existing selection
+- Ctrl+A selects all shapes
+- Multi-shape movement: Drag any selected shape to move all selected shapes together
+- Arrow keys move all selected shapes (1px or 10px with Shift)
+- Clipboard: Ctrl+C copy, Ctrl+X cut, Ctrl+V paste (with 20px offset)
+- Duplicate: Ctrl+D duplicates with offset
+- Connections between copied shapes are preserved
+- Pasted shapes become the new selection
+- Alignment tools in Property Panel: Left, Center, Right, Top, Middle, Bottom (requires 2+ shapes)
+- Distribution tools: Horizontal, Vertical (requires 3+ shapes)
+- 8 new files created, 9 files modified
