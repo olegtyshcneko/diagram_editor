@@ -1,6 +1,7 @@
 import type { Point } from '@/types/common';
 import type { Shape } from '@/types/shapes';
 import type { AnchorPosition, Connection } from '@/types/connections';
+import { NUMERICAL } from '@/lib/constants';
 
 /**
  * Get the position of an anchor point on a shape
@@ -135,8 +136,8 @@ export function isPointNearLine(
   const dy = lineEnd.y - lineStart.y;
   const lengthSquared = dx * dx + dy * dy;
 
-  // Line is actually a point
-  if (lengthSquared === 0) {
+  // Line is actually a point (use epsilon for floating-point comparison)
+  if (lengthSquared < NUMERICAL.EPSILON) {
     return (
       Math.hypot(point.x - lineStart.x, point.y - lineStart.y) < threshold
     );

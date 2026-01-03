@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import type { TextContent, TextStyle } from '@/types/shapes';
+import { TEXT_DEFAULTS } from '@/lib/constants';
+import { wrapText } from '@/lib/geometry/text';
 
 interface ShapeTextProps {
+  shapeId: string;
   text: TextContent | undefined;
   textStyle: TextStyle;
   shapeBounds: {
@@ -12,9 +15,9 @@ interface ShapeTextProps {
   };
 }
 
-const PADDING = 8;
+const { TEXT_PADDING, LINE_HEIGHT } = TEXT_DEFAULTS;
 
-export function ShapeText({ text, textStyle, shapeBounds }: ShapeTextProps) {
+export function ShapeText({ shapeId, text, textStyle, shapeBounds }: ShapeTextProps) {
   // Don't render if no text
   if (!text?.plainText) return null;
 
@@ -35,9 +38,9 @@ export function ShapeText({ text, textStyle, shapeBounds }: ShapeTextProps) {
   const textX = useMemo(() => {
     switch (horizontalAlign) {
       case 'left':
-        return x + PADDING;
+        return x + TEXT_PADDING;
       case 'right':
-        return x + width - PADDING;
+        return x + width - TEXT_PADDING;
       case 'center':
       default:
         return x + width / 2;
@@ -57,18 +60,33 @@ export function ShapeText({ text, textStyle, shapeBounds }: ShapeTextProps) {
     }
   }, [horizontalAlign]);
 
-  // Split text into lines
-  const lines = text.plainText.split('\n');
-  const lineHeight = fontSize * 1.2;
+  // Calculate max width for text wrapping
+  const maxWidth = width - TEXT_PADDING * 2;
+
+  // Wrap text to fit within shape width
+  const lines = useMemo(
+    () =>
+      wrapText({
+        text: text.plainText,
+        maxWidth,
+        fontSize,
+        fontFamily,
+        fontWeight,
+        fontStyle,
+      }),
+    [text.plainText, maxWidth, fontSize, fontFamily, fontWeight, fontStyle]
+  );
+
+  const lineHeight = fontSize * LINE_HEIGHT;
   const totalTextHeight = lines.length * lineHeight;
 
   // Calculate starting Y position based on vertical alignment
   const startY = useMemo(() => {
     switch (verticalAlign) {
       case 'top':
-        return y + PADDING + fontSize;
+        return y + TEXT_PADDING + fontSize;
       case 'bottom':
-        return y + height - PADDING - totalTextHeight + fontSize;
+        return y + height - TEXT_PADDING - totalTextHeight + fontSize;
       case 'middle':
       default:
         return y + (height - totalTextHeight) / 2 + fontSize;
@@ -79,27 +97,29 @@ export function ShapeText({ text, textStyle, shapeBounds }: ShapeTextProps) {
   const dominantBaseline = 'auto';
 
   return (
-    <text
-      x={textX}
-      textAnchor={textAnchor}
-      dominantBaseline={dominantBaseline}
-      fontFamily={fontFamily}
-      fontSize={fontSize}
-      fontWeight={fontWeight}
-      fontStyle={fontStyle}
-      textDecoration={textDecoration}
-      fill={fontColor}
-      style={{ userSelect: 'none', pointerEvents: 'none' }}
-    >
-      {lines.map((line, i) => (
-        <tspan
-          key={i}
-          x={textX}
-          y={startY + i * lineHeight}
-        >
-          {line || '\u00A0'} {/* Non-breaking space for empty lines */}
-        </tspan>
-      ))}
-    </text>
+    <g>
+      <text
+        x={textX}
+        textAnchor={textAnchor}
+        dominantBaseline={dominantBaseline}
+        fontFamily={fontFamily}
+        fontSize={fontSize}
+        fontWeight={fontWeight}
+        fontStyle={fontStyle}
+        textDecoration={textDecoration}
+        fill={fontColor}
+        style={{ userSelect: 'none', pointerEvents: 'none' }}
+      >
+        {lines.map((line, i) => (
+          <tspan
+            key={`${shapeId}-line-${i}`}
+            x={textX}
+            y={startY + i * lineHeight}
+          >
+            {line || '\u00A0'} {/* Non-breaking space for empty lines */}
+          </tspan>
+        ))}
+      </text>
+    </g>
   );
 }

@@ -40,24 +40,26 @@ export function AnchorPointsOverlay({
     <g className="anchor-points-overlay">
       {/* Show anchors on source shape during connection creation */}
       {sourceShape &&
+        connectionCreationState &&
         getAllAnchors(sourceShape).map(({ anchor, point }) => (
           <AnchorPoint
-            key={`source-${connectionCreationState!.sourceShapeId}-${anchor}`}
+            key={`source-${connectionCreationState.sourceShapeId}-${anchor}`}
             point={point}
             anchor={anchor}
-            isHighlighted={anchor === connectionCreationState!.sourceAnchor}
+            isHighlighted={anchor === connectionCreationState.sourceAnchor}
           />
         ))}
 
       {/* Show anchors on hovered shape */}
       {hoveredShape &&
+        hoveredShapeId &&
         hoveredShapeId !== connectionCreationState?.sourceShapeId &&
         getAllAnchors(hoveredShape).map(({ anchor, point }) => (
           <AnchorPoint
             key={`hover-${hoveredShapeId}-${anchor}`}
             point={point}
             anchor={anchor}
-            onMouseDown={(e) => onAnchorMouseDown(hoveredShapeId!, anchor, e)}
+            onMouseDown={(e) => onAnchorMouseDown(hoveredShapeId, anchor, e)}
           />
         ))}
 

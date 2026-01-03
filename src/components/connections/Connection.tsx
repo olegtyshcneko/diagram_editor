@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import type { Connection as ConnectionType } from '@/types/connections';
 import type { Shape } from '@/types/shapes';
 import { getConnectionEndpoints } from '@/lib/geometry/connection';
+import { COLORS, CONNECTION_DEFAULTS } from '@/lib/constants';
 
 interface ConnectionProps {
   connection: ConnectionType;
@@ -13,9 +14,10 @@ interface ConnectionProps {
   onMouseLeave: () => void;
 }
 
-const ARROW_SIZE = 10;
+const ARROW_SIZE = CONNECTION_DEFAULTS.ARROW_SIZE;
+const MIN_HIT_AREA_WIDTH = 12;
 
-export function Connection({
+export const Connection = memo(function Connection({
   connection,
   shapes,
   isSelected,
@@ -24,9 +26,16 @@ export function Connection({
   onMouseEnter,
   onMouseLeave,
 }: ConnectionProps) {
+  // Only depend on the specific shapes this connection uses, not the entire shapes object
+  const sourceShape = shapes[connection.sourceShapeId];
+  const targetShape = connection.targetShapeId
+    ? shapes[connection.targetShapeId]
+    : undefined;
+
   const endpoints = useMemo(
     () => getConnectionEndpoints(connection, shapes),
-    [connection, shapes]
+    // // eslint-disable-next-line react-hooks/exhaustive-deps
+    [connection, sourceShape, targetShape]
   );
 
   if (!endpoints) return null;
@@ -35,7 +44,11 @@ export function Connection({
   const { id, stroke, strokeWidth, sourceArrow, targetArrow } = connection;
 
   // Determine colors based on state
-  const lineColor = isSelected ? '#3B82F6' : isHovered ? '#60A5FA' : stroke;
+  const lineColor = isSelected
+    ? COLORS.SELECTION
+    : isHovered
+      ? COLORS.SELECTION_HOVER
+      : stroke;
   const lineWidth = isSelected ? strokeWidth + 1 : strokeWidth;
 
   // Arrow marker IDs unique to this connection
@@ -99,7 +112,7 @@ export function Connection({
         x2={end.x}
         y2={end.y}
         stroke="transparent"
-        strokeWidth={Math.max(12, strokeWidth + 10)}
+        strokeWidth={Math.max(MIN_HIT_AREA_WIDTH, strokeWidth + 10)}
         style={{ cursor: 'pointer' }}
         onMouseDown={onMouseDown}
         onMouseEnter={onMouseEnter}
@@ -129,7 +142,7 @@ export function Connection({
             cy={start.y}
             r={4}
             fill="white"
-            stroke="#3B82F6"
+            stroke={COLORS.SELECTION}
             strokeWidth={2}
             pointerEvents="none"
           />
@@ -138,7 +151,7 @@ export function Connection({
             cy={end.y}
             r={4}
             fill="white"
-            stroke="#3B82F6"
+            stroke={COLORS.SELECTION}
             strokeWidth={2}
             pointerEvents="none"
           />
@@ -146,4 +159,4 @@ export function Connection({
       )}
     </g>
   );
-}
+});

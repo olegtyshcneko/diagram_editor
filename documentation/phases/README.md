@@ -16,6 +16,8 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P3 | Shape Manipulation | **Completed** | [requirements_p3.md](./requirements_p3.md) | [spec_p3.md](./spec_p3.md) | [todo_p3.md](./todo_p3.md) |
 | P4 | Styling & Properties | **Completed** | [requirements_p4.md](./requirements_p4.md) | [spec_p4.md](./spec_p4.md) | [todo_p4.md](./todo_p4.md) |
 | P5 | Text & Connections | **Completed** | [requirements_p5.md](./requirements_p5.md) | [spec_p5.md](./spec_p5.md) | [todo_p5.md](./todo_p5.md) |
+| P5.1 | Text & Connection Fixes | **Completed** | [requirements_p5.1.md](./requirements_p5.1.md) | [spec_p5.1.md](./spec_p5.1.md) | [todo_p5.1.md](./todo_p5.1.md) |
+| P5.2 | Automatic Text Wrapping | **Completed** | [requirements_p5.2.md](./requirements_p5.2.md) | [spec_p5.2.md](./spec_p5.2.md) | [todo_p5.2.md](./todo_p5.2.md) |
 | P6 | Multi-Selection | Not Started | [requirements_p6.md](./requirements_p6.md) | [spec_p6.md](./spec_p6.md) | - |
 | P7 | History & Grid | Not Started | [requirements_p7.md](./requirements_p7.md) | [spec_p7.md](./spec_p7.md) | - |
 | P8 | Organization | Not Started | [requirements_p8.md](./requirements_p8.md) | [spec_p8.md](./spec_p8.md) | - |
@@ -42,6 +44,12 @@ Fill/stroke colors, stroke width/style, property panel UI, style persistence.
 
 ### P5: Text & Connections
 Text editing inside shapes, straight line connections between shapes.
+
+### P5.1: Text & Connection Fixes
+Bug fixes and code quality improvements for Phase 5: text overflow clipping, React anti-patterns, memory leaks, null safety, performance, accessibility, selection behavior.
+
+### P5.2: Automatic Text Wrapping
+Replace clipPath with automatic word wrapping. Text wraps at word boundaries to fit shape width, vertical overflow allowed.
 
 ### P6: Multi-Selection
 Shift+click and marquee selection, copy/paste, alignment tools.
@@ -110,3 +118,29 @@ Save/load JSON, export to PNG/SVG, import from files.
 - Keyboard shortcuts updated: C for connection tool, Escape cancels connection/text editing
 - Delete/Backspace works for connections
 - 17 new files created, 14 files modified
+
+### P5.1 - Completed
+- Fixed text overflow (KI-003): Text now clips within shape bounds via SVG clipPath
+- Fixed React key anti-pattern in ShapeText
+- Fixed memory leak in useConnectionCreation (ref pattern for event handlers)
+- Fixed null safety issues in AnchorPointsOverlay
+- Fixed silent (0,0) failure in screenToCanvas
+- Performance: Connection component only depends on relevant shapes (not entire shapes object)
+- Performance: Connection component wrapped in React.memo
+- Added zoom-aware anchor snap threshold
+- Text editing state clears when shape is deleted
+- Fixed selection bug: Connection now deselected when shape is selected
+- Added accessibility attributes to TextEditOverlay
+- Line height consistency between ShapeText and TextEditOverlay
+- Floating-point epsilon comparison for hit testing
+- Color constants extracted (SELECTION, SELECTION_HOVER)
+- 3 new files created, 12 files modified
+
+### P5.2 - Completed
+- Automatic text wrapping at word boundaries using Canvas measureText API
+- Long words break at character level when exceeding shape width
+- User-entered newlines preserved
+- Vertical overflow allowed (text can extend below shape)
+- Removed clipPath (replaced by proper wrapping)
+- Known issue added: KI-005 (ellipse text uses rectangular bounds)
+- 1 new file created (text.ts), 1 file modified (ShapeText.tsx)

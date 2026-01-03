@@ -19,9 +19,9 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  AlignStartVertical,
-  AlignCenterVertical,
-  AlignEndVertical,
+  ArrowUpToLine,
+  GripHorizontal,
+  ArrowDownToLine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -219,11 +219,9 @@ export function TextSection({ selectedShapeIds }: TextSectionProps) {
               )}
               onClick={() => handleTextStyleChange({ verticalAlign: vAlign })}
             >
-              {vAlign === 'top' && <AlignStartVertical className="w-4 h-4" />}
-              {vAlign === 'middle' && (
-                <AlignCenterVertical className="w-4 h-4" />
-              )}
-              {vAlign === 'bottom' && <AlignEndVertical className="w-4 h-4" />}
+              {vAlign === 'top' && <ArrowUpToLine className="w-4 h-4" />}
+              {vAlign === 'middle' && <GripHorizontal className="w-4 h-4" />}
+              {vAlign === 'bottom' && <ArrowDownToLine className="w-4 h-4" />}
             </Button>
           ))}
         </div>

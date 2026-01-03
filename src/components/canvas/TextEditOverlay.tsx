@@ -4,6 +4,7 @@ import type { Viewport } from '@/types/viewport';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { DEFAULT_TEXT_STYLE } from '@/types/shapes';
+import { TEXT_DEFAULTS } from '@/lib/constants';
 
 interface TextEditOverlayProps {
   shape: Shape;
@@ -130,6 +131,8 @@ export function TextEditOverlay({
       onKeyDown={handleKeyDown}
       onClick={handleClick}
       onMouseDown={(e) => e.stopPropagation()}
+      aria-label="Edit shape text"
+      aria-multiline="true"
       style={{
         position: 'absolute',
         left: screenX,
@@ -149,9 +152,9 @@ export function TextEditOverlay({
         outline: 'none',
         resize: 'none',
         overflow: 'hidden',
-        padding: '4px 8px',
+        padding: `${TEXT_DEFAULTS.TEXT_PADDING}px`,
         boxSizing: 'border-box',
-        lineHeight: 1.2,
+        lineHeight: TEXT_DEFAULTS.LINE_HEIGHT,
       }}
     />
   );

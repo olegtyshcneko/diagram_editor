@@ -27,6 +27,7 @@ export const SHAPE_DEFAULTS = {
 export const COLORS = {
   SELECTION: '#3B82F6',
   SELECTION_FILL: 'rgba(59, 130, 246, 0.1)',
+  SELECTION_HOVER: '#60A5FA',
   ANCHOR: '#3B82F6',
   GRID_DOT: '#d0d0d0',
 };
@@ -92,4 +93,10 @@ export const TEXT_DEFAULTS = {
   DEFAULT_FONT_FAMILY: 'Arial, sans-serif',
   DEFAULT_FONT_COLOR: '#000000',
   TEXT_PADDING: 8,
+  LINE_HEIGHT: 1.2,
+};
+
+// Numerical constants
+export const NUMERICAL = {
+  EPSILON: 1e-10, // For floating-point comparisons
 };

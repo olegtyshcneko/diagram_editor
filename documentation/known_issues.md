@@ -25,31 +25,6 @@ Zoom to 100% for optimal handle usability, or use property panel for precise adj
 
 ---
 
-### KI-003: Text Overflow Outside Shape Bounds
-**Status:** Open
-**Priority:** Low
-**Reported:** Phase 5
-
-**Description:**
-Text in shapes flows outside the shape bounds if the text content is too long or the shape is too small. The `ShapeText` component renders text without clipping to the shape boundary.
-
-**Expected Behavior:**
-Text should either:
-1. Clip at shape boundaries (with optional ellipsis)
-2. Auto-resize the shape to fit text
-3. Show a visual indicator that text is overflowing
-
-**Suggested Fix:**
-Options for future implementation:
-- Add SVG `clipPath` to constrain text rendering within shape bounds
-- Implement text truncation with ellipsis when overflow detected
-- Add auto-resize mode that expands shape to fit text content
-
-**Workaround:**
-Manually resize shapes to accommodate text, or use shorter text content.
-
----
-
 ### KI-004: Connection Lines Cut Through Shapes
 **Status:** Open (Addressed in Phase 8)
 **Priority:** Medium
@@ -72,7 +47,39 @@ Manually reposition shapes to avoid overlapping connections, or wait for Phase 8
 
 ---
 
+### KI-005: Ellipse Text Uses Rectangular Bounds
+**Status:** Open
+**Priority:** Low
+**Reported:** Phase 5.2
+
+**Description:**
+Text wrapping and positioning in ellipses/circles uses rectangular bounding box calculations. When text is vertically aligned to "top", it can extend outside the curved ellipse boundary horizontally because the ellipse is narrower at the top/bottom than in the middle.
+
+**Expected Behavior:**
+Text should respect the actual ellipse curve, calculating available width based on the ellipse equation at each vertical position.
+
+**Suggested Fix:**
+Calculate text bounds using ellipse geometry:
+- For a given Y position, calculate the horizontal width at that point using: `width_at_y = 2 * a * sqrt(1 - ((y - cy) / b)^2)` where `a` = horizontal radius, `b` = vertical radius, `cy` = center Y
+- Apply this per-line for proper text fitting within curved boundaries
+
+**Workaround:**
+Use "middle" vertical alignment for ellipses, or use smaller font sizes to keep text within the widest part of the ellipse.
+
+---
+
 ## Resolved Issues
+
+### KI-003: Text Overflow Outside Shape Bounds
+**Status:** Resolved (Phase 5.1)
+**Priority:** Low
+**Reported:** Phase 5
+**Resolved:** Phase 5.1
+
+**Resolution:**
+Added SVG `clipPath` to `ShapeText` component to constrain text rendering within shape bounds. Text that exceeds shape boundaries is now visually clipped.
+
+---
 
 ### KI-001: Middle Mouse Pan Not Working
 **Status:** Resolved (Phase 2)

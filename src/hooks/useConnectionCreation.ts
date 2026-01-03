@@ -1,10 +1,11 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { useViewportStore } from '@/stores/viewportStore';
 import type { AnchorPosition } from '@/types/connections';
 import type { Point } from '@/types/common';
 import { findNearestAnchor, getAnchorPosition } from '@/lib/geometry/connection';
+import { CONNECTION_DEFAULTS } from '@/lib/constants';
 
 interface UseConnectionCreationProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -20,6 +21,10 @@ export function useConnectionCreation({
   const connectionCreationState = useInteractionStore(
     (s) => s.connectionCreationState
   );
+  // Stable boolean selector - doesn't change on every currentPoint update
+  const isCreatingConnection = useInteractionStore(
+    (s) => s.connectionCreationState !== null
+  );
   const startConnectionCreation = useInteractionStore(
     (s) => s.startConnectionCreation
   );
@@ -34,8 +39,11 @@ export function useConnectionCreation({
 
   // Convert screen coordinates to canvas coordinates
   const screenToCanvas = useCallback(
-    (screenX: number, screenY: number): Point => {
-      if (!containerRef.current) return { x: 0, y: 0 };
+    (screenX: number, screenY: number): Point | null => {
+      if (!containerRef.current) {
+        console.warn('screenToCanvas called with null container ref');
+        return null;
+      }
 
       const rect = containerRef.current.getBoundingClientRect();
       const x = viewport.x + (screenX - rect.left) / viewport.zoom;
@@ -69,6 +77,8 @@ export function useConnectionCreation({
       if (!connectionCreationState) return;
 
       const canvasPoint = screenToCanvas(e.clientX, e.clientY);
+      if (!canvasPoint) return;
+
       updateConnectionCreation(canvasPoint);
     },
     [connectionCreationState, screenToCanvas, updateConnectionCreation]
@@ -80,17 +90,24 @@ export function useConnectionCreation({
       if (!connectionCreationState) return;
 
       const canvasPoint = screenToCanvas(e.clientX, e.clientY);
+      if (!canvasPoint) {
+        endConnectionCreation();
+        return;
+      }
 
       // Find target shape and anchor
       let targetShapeId: string | null = null;
       let targetAnchor: AnchorPosition | null = null;
+
+      // Zoom-aware anchor snap threshold
+      const anchorThreshold = CONNECTION_DEFAULTS.ANCHOR_SNAP_THRESHOLD / viewport.zoom;
 
       // Search all shapes for a nearby anchor
       for (const [id, shape] of Object.entries(shapes)) {
         // Don't connect to self
         if (id === connectionCreationState.sourceShapeId) continue;
 
-        const nearestAnchor = findNearestAnchor(shape, canvasPoint, 25);
+        const nearestAnchor = findNearestAnchor(shape, canvasPoint, anchorThreshold);
         if (nearestAnchor) {
           targetShapeId = id;
           targetAnchor = nearestAnchor.anchor;
@@ -110,7 +127,7 @@ export function useConnectionCreation({
 
       endConnectionCreation();
     },
-    [connectionCreationState, screenToCanvas, shapes, addConnection, endConnectionCreation]
+    [connectionCreationState, screenToCanvas, shapes, addConnection, endConnectionCreation, viewport.zoom]
   );
 
   // Handle escape to cancel connection creation
@@ -124,23 +141,35 @@ export function useConnectionCreation({
     [connectionCreationState, endConnectionCreation]
   );
 
-  // Attach global listeners during connection creation
+  // Store handlers in ref to avoid recreating listeners on every render
+  const handlersRef = useRef({ handleMouseMove, handleMouseUp, handleKeyDown });
   useEffect(() => {
-    if (!connectionCreationState) return;
+    handlersRef.current = { handleMouseMove, handleMouseUp, handleKeyDown };
+  });
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('keydown', handleKeyDown);
+  // Attach global listeners during connection creation
+  // Use stable boolean (isCreatingConnection) as dependency, not the object (connectionCreationState)
+  // This prevents re-adding listeners on every mouse move
+  useEffect(() => {
+    if (!isCreatingConnection) return;
+
+    const onMouseMove = (e: MouseEvent) => handlersRef.current.handleMouseMove(e);
+    const onMouseUp = (e: MouseEvent) => handlersRef.current.handleMouseUp(e);
+    const onKeyDown = (e: KeyboardEvent) => handlersRef.current.handleKeyDown(e);
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('keydown', onKeyDown);
     };
-  }, [connectionCreationState, handleMouseMove, handleMouseUp, handleKeyDown]);
+  }, [isCreatingConnection]);
 
   return {
     handleAnchorMouseDown,
-    isCreatingConnection: connectionCreationState !== null,
+    isCreatingConnection,
   };
 }

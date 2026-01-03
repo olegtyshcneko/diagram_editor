@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 
@@ -10,6 +10,13 @@ export function useTextEditing() {
   const setEditingTextShapeId = useInteractionStore(
     (s) => s.setEditingTextShapeId
   );
+
+  // Clear editing state if the shape is deleted
+  useEffect(() => {
+    if (editingTextShapeId && !shapes[editingTextShapeId]) {
+      setEditingTextShapeId(null);
+    }
+  }, [editingTextShapeId, shapes, setEditingTextShapeId]);
 
   // Enter text editing mode on double-click
   const handleShapeDoubleClick = useCallback(

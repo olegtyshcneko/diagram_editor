@@ -134,9 +134,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
           selectedShapeIds: isSelected
             ? state.selectedShapeIds.filter((sid) => sid !== id)
             : [...state.selectedShapeIds, id],
+          selectedConnectionIds: [], // Clear connection selection when adding to shape selection
         };
       }
-      return { selectedShapeIds: [id] };
+      return { selectedShapeIds: [id], selectedConnectionIds: [] };
     });
   },
 

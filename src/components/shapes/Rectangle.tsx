@@ -59,6 +59,7 @@ export const Rectangle = memo(function Rectangle({
         onMouseDown={onMouseDown}
       />
       <ShapeText
+        shapeId={shape.id}
         text={text}
         textStyle={textStyle}
         shapeBounds={{ x, y, width, height }}

@@ -58,6 +58,7 @@ export const Ellipse = memo(function Ellipse({
         onMouseDown={onMouseDown}
       />
       <ShapeText
+        shapeId={shape.id}
         text={text}
         textStyle={textStyle}
         shapeBounds={{ x, y, width, height }}
