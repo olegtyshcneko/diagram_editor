@@ -106,6 +106,103 @@ Use end arrows only, or accept partial visibility of start arrows.
 
 ---
 
+### KI-010: Group Edit Mode Exits When Clicking Inside Group Bounds
+**Status:** Open
+**Priority:** Medium
+**Reported:** Input Refactoring Phase
+
+**Description:**
+When in group edit mode, clicking on an empty area inside the group's bounding box exits group edit mode entirely. This is unexpected behavior - users expect to deselect the currently selected element within the group while staying in group edit mode.
+
+**Current Behavior:**
+1. User double-clicks a group to enter group edit mode
+2. User selects a shape within the group
+3. User clicks on empty space inside the group bounds
+4. Group edit mode exits (unexpected)
+
+**Expected Behavior:**
+- Clicking on empty space **inside** the group bounds: Deselect current element, stay in group edit mode
+- Clicking on empty space **outside** the group bounds: Exit group edit mode
+
+**Affected Code:**
+- `src/components/canvas/Canvas.tsx` or `CanvasContainer.tsx` - click handling during group edit mode
+- Logic that determines when to call `setEditingGroupId(null)`
+
+**Suggested Fix:**
+When handling canvas clicks during group edit mode:
+1. Calculate the group's bounding box (union of all member shapes)
+2. Check if click point is inside or outside this bounding box
+3. If inside: just clear selection within the group, don't exit edit mode
+4. If outside: exit group edit mode
+
+```typescript
+// Pseudocode
+const handleCanvasClick = (canvasPoint: Point) => {
+  if (editingGroupId) {
+    const groupBounds = getGroupBounds(editingGroupId);
+    if (isPointInBounds(canvasPoint, groupBounds)) {
+      // Inside group - just deselect, stay in edit mode
+      clearSelection();
+    } else {
+      // Outside group - exit edit mode
+      setEditingGroupId(null);
+    }
+    return;
+  }
+  // ... normal click handling
+};
+```
+
+**Workaround:**
+Press Escape or click outside the group bounds to exit group edit mode intentionally.
+
+---
+
+### KI-011: Selection Box Doesn't Treat Groups as Atomic Units
+**Status:** Open
+**Priority:** Medium
+**Reported:** Input Refactoring Phase
+
+**Description:**
+When using the selection box (marquee selection) to select shapes, if the box covers some ungrouped shapes AND only a partial set of shapes from a group, only the individual shapes within the box are selected. This breaks the expected group behavior where groups should be treated as a single entity.
+
+**Example:**
+- Canvas has: Shape A (ungrouped), Shape B + Shape C (grouped together)
+- User draws selection box covering Shape A and Shape B (but not Shape C)
+- Current behavior: Shape A and Shape B are selected (group is partially selected)
+- Expected behavior: Either select all of Shape A, B, C (include entire group) OR only select Shape A (exclude group entirely)
+
+**Expected Behavior:**
+Groups should be treated as atomic units during selection box operations:
+- **Option A (Inclusive):** If any shape in a group intersects the selection box, select the entire group
+- **Option B (Exclusive):** Only select a group if ALL its shapes are within the selection box
+
+**Affected Code:**
+- `src/hooks/useSelectionBox.ts` - `handleSelectionBoxEnd()`
+- `src/lib/geometry/selection.ts` - `getShapesInBox()`
+
+**Suggested Fix:**
+After determining which shapes are in the selection box, check for partial group selections:
+```typescript
+// Pseudocode for Option A (inclusive)
+const shapesInBox = getShapesInBox(shapes, startPoint, currentPoint);
+const expandedSelection = new Set(shapesInBox);
+
+for (const shapeId of shapesInBox) {
+  const shape = shapes[shapeId];
+  if (shape.groupId) {
+    // Add all shapes in this group
+    const group = groups[shape.groupId];
+    group.memberIds.forEach(id => expandedSelection.add(id));
+  }
+}
+```
+
+**Workaround:**
+Manually Shift+click to add/remove shapes, or ensure the selection box fully covers all shapes in a group.
+
+---
+
 ### KI-008: No Multi-Selection for Connections
 
 **Description:**

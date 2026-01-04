@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { useViewportStore } from '@/stores/viewportStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { EMPTY_SHAPE_DELTA } from '@/types/history';
+import { useGlobalDrag } from '@/lib/input';
 import type { AnchorPosition } from '@/types/connections';
 import type { Point } from '@/types/common';
 import { findNearestAnchor, getAnchorPosition } from '@/lib/geometry/connection';
@@ -170,32 +171,14 @@ export function useConnectionCreation({
     [connectionCreationState, endConnectionCreation]
   );
 
-  // Store handlers in ref to avoid recreating listeners on every render
-  const handlersRef = useRef({ handleMouseMove, handleMouseUp, handleKeyDown });
-  useEffect(() => {
-    handlersRef.current = { handleMouseMove, handleMouseUp, handleKeyDown };
+  // Use centralized global drag hook for mouse/keyboard tracking
+  // The hook internally uses refs to always call the latest handler versions
+  useGlobalDrag({
+    isActive: isCreatingConnection,
+    onMove: handleMouseMove,
+    onEnd: handleMouseUp,
+    onKeyDown: handleKeyDown,
   });
-
-  // Attach global listeners during connection creation
-  // Use stable boolean (isCreatingConnection) as dependency, not the object (connectionCreationState)
-  // This prevents re-adding listeners on every mouse move
-  useEffect(() => {
-    if (!isCreatingConnection) return;
-
-    const onMouseMove = (e: MouseEvent) => handlersRef.current.handleMouseMove(e);
-    const onMouseUp = (e: MouseEvent) => handlersRef.current.handleMouseUp(e);
-    const onKeyDown = (e: KeyboardEvent) => handlersRef.current.handleKeyDown(e);
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    window.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [isCreatingConnection]);
 
   return {
     handleAnchorMouseDown,

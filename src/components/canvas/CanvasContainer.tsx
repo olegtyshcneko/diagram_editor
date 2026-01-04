@@ -18,6 +18,7 @@ import { useDiagramStore } from '@/stores/diagramStore';
 import { CANVAS_DEFAULTS } from '@/lib/constants';
 import { ContextMenu } from '@/components/contextMenu';
 import { CanvasContainerContext } from '@/contexts/CanvasContainerContext';
+import { shouldSkipGlobalShortcut } from '@/lib/input';
 
 /**
  * Canvas container that handles all mouse, wheel, and keyboard events
@@ -228,10 +229,7 @@ export function CanvasContainer() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if typing in input/textarea
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
+      if (shouldSkipGlobalShortcut(e)) {
         return;
       }
 

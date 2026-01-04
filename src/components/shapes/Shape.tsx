@@ -4,6 +4,7 @@ import { Rectangle } from './Rectangle';
 import { Ellipse } from './Ellipse';
 import { useShapeManipulation } from '@/hooks/manipulation';
 import { useInteractionStore } from '@/stores/interactionStore';
+import { isMultiSelectModifier } from '@/lib/input';
 
 interface ShapeProps {
   shape: ShapeType;
@@ -33,16 +34,16 @@ export const Shape = memo(function Shape({
 
     e.stopPropagation();
 
-    const isMultiSelectModifier = e.shiftKey || e.ctrlKey || e.metaKey;
+    const hasMultiSelectModifier = isMultiSelectModifier(e.nativeEvent);
 
     // If not selected, select first (with Shift/Ctrl for multi-select)
     if (!isSelected) {
-      onSelect(shape.id, isMultiSelectModifier);
+      onSelect(shape.id, hasMultiSelectModifier);
       return;
     }
 
     // If already selected with modifier, toggle selection (remove from selection)
-    if (isMultiSelectModifier) {
+    if (hasMultiSelectModifier) {
       onSelect(shape.id, true); // This will toggle it off
       return;
     }

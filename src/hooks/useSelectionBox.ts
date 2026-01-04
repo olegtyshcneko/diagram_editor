@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useViewportStore } from '@/stores/viewportStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { screenToCanvas } from '@/lib/geometry/viewport';
 import { getShapesInBox } from '@/lib/geometry/selection';
+import { useGlobalDrag } from '@/lib/input';
 import type { Point, Size } from '@/types/common';
 
 interface UseSelectionBoxProps {
@@ -87,26 +88,12 @@ export function useSelectionBox({ containerSize, containerRef }: UseSelectionBox
     originalSelectionRef.current = [];
   }, [selectionBoxState, shapes, setSelectedShapeIds, endSelectionBox]);
 
-  // Add global mouse listeners when selection box is active
-  useEffect(() => {
-    if (!selectionBoxState) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      handleSelectionBoxUpdate(e);
-    };
-
-    const handleMouseUp = () => {
-      handleSelectionBoxEnd();
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [selectionBoxState, handleSelectionBoxUpdate, handleSelectionBoxEnd]);
+  // Use centralized global drag hook for mouse tracking
+  useGlobalDrag({
+    isActive: selectionBoxState !== null,
+    onMove: handleSelectionBoxUpdate,
+    onEnd: handleSelectionBoxEnd,
+  });
 
   return {
     selectionBoxState,

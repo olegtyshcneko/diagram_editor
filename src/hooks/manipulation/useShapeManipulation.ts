@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { Shape } from '@/types/shapes';
 import type { HandleType } from '@/types/interaction';
 import { useInteractionStore } from '@/stores/interactionStore';
+import { useGlobalDrag } from '@/lib/input';
 import { useShapeMove } from './useShapeMove';
 import { useShapeResize } from './useShapeResize';
 import { useShapeRotate } from './useShapeRotate';
@@ -80,54 +81,49 @@ export function useShapeManipulation({ shape }: UseShapeManipulationOptions) {
   const isManipulatingThisShape = manipulationState?.shapeId === shape.id;
   const manipulationType = manipulationState?.type;
 
-  // Set up global mouse events during manipulation
-  useEffect(() => {
-    // Only handle events for this shape's manipulation
-    if (!isManipulatingThisShape || !manipulationType) {
-      return;
+  // Mouse move handler for global drag
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const { shift, alt } = modifiersRef.current;
+    const handlers = handlersRef.current;
+    const type = manipulationType;
+
+    switch (type) {
+      case 'move':
+        handlers.handleMoveUpdate(e, shift, alt);
+        break;
+      case 'resize':
+        handlers.handleResizeUpdate(e, shift, alt);
+        break;
+      case 'rotate':
+        handlers.handleRotateUpdate(e, shift);
+        break;
     }
+  }, [manipulationType]);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const { shift, alt } = modifiersRef.current;
-      const handlers = handlersRef.current;
+  // Mouse up handler for global drag
+  const handleMouseUp = useCallback(() => {
+    const handlers = handlersRef.current;
+    const type = manipulationType;
 
-      switch (manipulationType) {
-        case 'move':
-          handlers.handleMoveUpdate(e, shift, alt);
-          break;
-        case 'resize':
-          handlers.handleResizeUpdate(e, shift, alt);
-          break;
-        case 'rotate':
-          handlers.handleRotateUpdate(e, shift);
-          break;
-      }
-    };
+    switch (type) {
+      case 'move':
+        handlers.handleMoveEnd();
+        break;
+      case 'resize':
+        handlers.handleResizeEnd();
+        break;
+      case 'rotate':
+        handlers.handleRotateEnd();
+        break;
+    }
+  }, [manipulationType]);
 
-    const handleMouseUp = () => {
-      const handlers = handlersRef.current;
-
-      switch (manipulationType) {
-        case 'move':
-          handlers.handleMoveEnd();
-          break;
-        case 'resize':
-          handlers.handleResizeEnd();
-          break;
-        case 'rotate':
-          handlers.handleRotateEnd();
-          break;
-      }
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isManipulatingThisShape, manipulationType, shape.id]);
+  // Use centralized global drag hook for mouse tracking during manipulation
+  useGlobalDrag({
+    isActive: isManipulatingThisShape && !!manipulationType,
+    onMove: handleMouseMove,
+    onEnd: handleMouseUp,
+  });
 
   // Start move on shape body drag (works with any tool)
   const onShapeMouseDown = useCallback((e: React.MouseEvent) => {

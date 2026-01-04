@@ -6,6 +6,7 @@ import { useInteractionStore } from '@/stores/interactionStore';
 import { useCanvasContainer } from '@/contexts/CanvasContainerContext';
 import { screenToCanvas } from '@/lib/geometry/viewport';
 import { EMPTY_SHAPE_DELTA } from '@/types/history';
+import { useGlobalDrag } from '@/lib/input';
 import type { Point } from '@/types/common';
 import type { ConnectionControlPoints } from '@/types/connections';
 
@@ -218,21 +219,12 @@ export function useControlPointDrag({
     requestAnimationFrame(() => setControlPointDragging(false));
   }, [connectionId, connections, pushEntry, setControlPointDragging]);
 
-  // Only attach global mouse listeners when actively dragging
-  useEffect(() => {
-    if (!isDraggingState) return;
-
-    const onMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const onMouseUp = () => handleMouseUp();
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, [isDraggingState, handleMouseMove, handleMouseUp]);
+  // Use centralized global drag hook for mouse tracking
+  useGlobalDrag({
+    isActive: isDraggingState,
+    onMove: handleMouseMove,
+    onEnd: handleMouseUp,
+  });
 
   // Return no-op if disabled
   if (!enabled) {

@@ -7,6 +7,7 @@ import { useHistoryStore } from '@/stores/historyStore';
 import { EMPTY_CONNECTION_DELTA } from '@/types/history';
 import { DEFAULT_TEXT_STYLE } from '@/types/shapes';
 import { TEXT_DEFAULTS } from '@/lib/constants';
+import { isCtrlOrMeta } from '@/lib/input';
 
 interface TextEditOverlayProps {
   shape: Shape;
@@ -96,7 +97,7 @@ export function TextEditOverlay({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       // Handle formatting shortcuts
-      if (e.ctrlKey || e.metaKey) {
+      if (isCtrlOrMeta(e.nativeEvent)) {
         const key = e.key.toLowerCase();
 
         if (key === 'b') {

@@ -8,6 +8,7 @@ import { useHistory } from '@/hooks/useHistory';
 import { KEYBOARD } from '@/lib/constants';
 import { EMPTY_CONNECTION_DELTA } from '@/types/history';
 import { isCompleteGroupSelected } from '@/lib/groupUtils';
+import { shouldSkipGlobalShortcut, isCtrlOrMeta } from '@/lib/input';
 import type { Shape } from '@/types/shapes';
 import type { Connection } from '@/types/connections';
 
@@ -316,10 +317,7 @@ export function useKeyboardShortcuts() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't handle shortcuts when typing in inputs
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
+      if (shouldSkipGlobalShortcut(e)) {
         return;
       }
 
@@ -330,7 +328,7 @@ export function useKeyboardShortcuts() {
       const hasConnectionSelection = selectedConnectionIds.length > 0;
       const isEditingText = editingTextShapeId !== null;
       const isCreatingConnection = connectionCreationState !== null;
-      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+      const ctrlOrMeta = isCtrlOrMeta(e);
 
       // Clipboard and edit shortcuts (only when not editing text)
       if (!isEditingText && ctrlOrMeta) {
