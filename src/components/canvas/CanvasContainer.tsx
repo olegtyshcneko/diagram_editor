@@ -3,6 +3,7 @@ import { Canvas } from './Canvas';
 import { TextEditOverlay } from './TextEditOverlay';
 import { useViewportStore } from '@/stores/viewportStore';
 import { useInteractionStore } from '@/stores/interactionStore';
+import { useGroupStore } from '@/stores/groupStore';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { useShapeCreation } from '@/hooks/useShapeCreation';
 import { useSelection } from '@/hooks/useSelection';
@@ -42,6 +43,10 @@ export function CanvasContainer() {
   const activeTool = useInteractionStore((s) => s.activeTool);
   const manipulationState = useInteractionStore((s) => s.manipulationState);
   const setCursorCanvasPosition = useInteractionStore((s) => s.setCursorCanvasPosition);
+
+  // Group store
+  const editingGroupId = useGroupStore((s) => s.editingGroupId);
+  const exitGroupEdit = useGroupStore((s) => s.exitGroupEdit);
 
   // Shape hover tracking for connection anchors
   const [hoveredShapeId, setHoveredShapeId] = useState<string | null>(null);
@@ -118,11 +123,15 @@ export function CanvasContainer() {
 
         // Only start selection box if not clicking on a shape
         if (!hitShape) {
+          // Exit group edit mode when clicking on empty canvas
+          if (editingGroupId) {
+            exitGroupEdit();
+          }
           selectionBox.handleSelectionBoxStart(screenPoint, e.shiftKey || e.ctrlKey || e.metaKey);
         }
       }
     },
-    [spacebarHeld, startPan, activeTool, shapeCreation, viewport, containerSize, shapes, selectionBox]
+    [spacebarHeld, startPan, activeTool, shapeCreation, viewport, containerSize, shapes, selectionBox, editingGroupId, exitGroupEdit]
   );
 
   // Mouse move handler for pan, shape creation, and cursor position

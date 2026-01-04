@@ -1,6 +1,6 @@
 # Phase 7.1: P7 Bug Fixes & Completion - Todo List
 
-## Status: Implementation Complete (Needs Testing)
+## Status: Completed
 
 ## Part 1: Bug Fixes
 
@@ -13,9 +13,9 @@
 ### KI-007: Resize/Rotation History
 - [x] Debug handleResizeEnd - verify it's being called
 - [x] Debug handleRotateEnd - verify it's being called
-- [x] Fix the root cause (stale closure - removed selectedShapeIds from deps)
-- [ ] Test undo/redo for resize
-- [ ] Test undo/redo for rotation
+- [x] Fix the root cause (multiple React instances - use global store as single source of truth)
+- [x] Test undo/redo for resize
+- [x] Test undo/redo for rotation
 
 ---
 
@@ -79,8 +79,8 @@
 
 ### Bug Fix Verification
 - [x] Context menu: All actions work when menu opened on shape
-- [ ] Undo resize reverts shape size correctly
-- [ ] Undo rotation reverts shape angle correctly
+- [x] Undo resize reverts shape size correctly
+- [x] Undo rotation reverts shape angle correctly
 
 ### History Verification
 - [x] Undo fill color change
@@ -105,7 +105,7 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | KI-006: Context menu clicks | Done | Added onMouseDown/onMouseUp/onClick stopPropagation to ContextMenu.tsx container |
-| KI-007: Resize/rotation history | Done | Fixed stale closure: removed selectedShapeIds from deps, store selection in ref at start |
+| KI-007: Resize/rotation history | Done | Fixed multiple React instance issue: use global manipulationState store as single source of truth instead of local refs |
 | FillSection history | Done | Added pushEntry for fill color and opacity changes |
 | StrokeSection history | Done | Added pushEntry for stroke color, width, and style changes |
 | CornerRadiusSection history | Done | Added pushEntry for corner radius changes |

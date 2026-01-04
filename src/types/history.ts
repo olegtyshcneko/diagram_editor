@@ -18,7 +18,9 @@ export type ActionType =
   | 'DUPLICATE'
   | 'ALIGN'
   | 'DISTRIBUTE'
-  | 'Z_ORDER';
+  | 'Z_ORDER'
+  | 'GROUP'
+  | 'UNGROUP';
 
 /**
  * Shape modification delta - stores before/after state for a single shape

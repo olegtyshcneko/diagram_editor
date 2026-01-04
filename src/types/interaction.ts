@@ -13,7 +13,7 @@ export type HandleType =
 /**
  * Types of manipulation operations
  */
-export type ManipulationType = 'move' | 'resize' | 'rotate';
+export type ManipulationType = 'move' | 'resize' | 'rotate' | 'group-resize' | 'group-rotate';
 
 /**
  * State tracked during an active manipulation operation

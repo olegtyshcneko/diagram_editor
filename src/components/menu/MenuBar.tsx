@@ -5,8 +5,10 @@ import { useDiagramStore } from '@/stores/diagramStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { usePreferencesStore } from '@/stores/preferencesStore';
 import { useViewportStore } from '@/stores/viewportStore';
+import { useGroupStore } from '@/stores/groupStore';
 import { useHistory } from '@/hooks/useHistory';
 import { EMPTY_CONNECTION_DELTA } from '@/types/history';
+import { isCompleteGroupSelected } from '@/lib/groupUtils';
 import type { Shape } from '@/types/shapes';
 import type { Connection } from '@/types/connections';
 import type { AlignmentType } from '@/types/selection';
@@ -56,8 +58,15 @@ export function MenuBar() {
   const setViewport = useViewportStore((s) => s.setViewport);
   const resetView = useViewportStore((s) => s.resetView);
 
+  // Groups
+  const groups = useGroupStore((s) => s.groups);
+  const createGroup = useGroupStore((s) => s.createGroup);
+  const ungroup = useGroupStore((s) => s.ungroup);
+  const updateShape = useDiagramStore((s) => s.updateShape);
+
   const hasSelection = selectedShapeIds.length > 0;
   const hasMultiSelection = selectedShapeIds.length > 1;
+  const selectedGroup = isCompleteGroupSelected(selectedShapeIds, groups);
 
   const closeMenu = useCallback(() => setOpenMenu(null), []);
 
@@ -271,6 +280,79 @@ export function MenuBar() {
     closeMenu();
   }, [resetView, closeMenu]);
 
+  // Group with history
+  const handleGroup = useCallback(() => {
+    if (selectedShapeIds.length < 2) return;
+
+    const selectionBefore = [...selectedShapeIds];
+
+    // Create the group
+    const groupId = createGroup(selectedShapeIds);
+    if (!groupId) return;
+
+    // Update shapes with groupId
+    for (const id of selectedShapeIds) {
+      updateShape(id, { groupId });
+    }
+
+    // Push history entry
+    pushEntry({
+      type: 'GROUP',
+      description: `Group ${selectedShapeIds.length} shapes`,
+      shapeDelta: {
+        added: [],
+        removed: [],
+        modified: selectedShapeIds.map((id) => ({
+          id,
+          before: { groupId: undefined },
+          after: { groupId },
+        })),
+      },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore,
+      selectionAfter: selectedShapeIds,
+    });
+
+    closeMenu();
+  }, [selectedShapeIds, createGroup, updateShape, pushEntry, closeMenu]);
+
+  // Ungroup with history
+  const handleUngroup = useCallback(() => {
+    if (!selectedGroup) return;
+
+    const selectionBefore = [...selectedShapeIds];
+    const groupId = selectedGroup.id;
+    const memberIds = [...selectedGroup.memberIds];
+
+    // Ungroup
+    ungroup(groupId);
+
+    // Clear groupId from shapes
+    for (const id of memberIds) {
+      updateShape(id, { groupId: undefined });
+    }
+
+    // Push history entry
+    pushEntry({
+      type: 'UNGROUP',
+      description: `Ungroup ${memberIds.length} shapes`,
+      shapeDelta: {
+        added: [],
+        removed: [],
+        modified: memberIds.map((id) => ({
+          id,
+          before: { groupId },
+          after: { groupId: undefined },
+        })),
+      },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore,
+      selectionAfter: memberIds,
+    });
+
+    closeMenu();
+  }, [selectedGroup, selectedShapeIds, ungroup, updateShape, pushEntry, closeMenu]);
+
   // Build undo/redo labels
   const undoLabel = canUndo() && currentEntry
     ? `Undo ${currentEntry.description}`
@@ -351,13 +433,13 @@ export function MenuBar() {
       >
         <MenuItem
           label="Show Grid"
-          shortcut="Ctrl+G"
+          shortcut="G"
           checked={showGrid}
           onClick={() => { toggleGrid(); closeMenu(); }}
         />
         <MenuItem
           label="Snap to Grid"
-          shortcut="Ctrl+Shift+G"
+          shortcut="Shift+G"
           checked={snapToGrid}
           onClick={() => { toggleSnapToGrid(); closeMenu(); }}
         />
@@ -458,6 +540,19 @@ export function MenuBar() {
           label="Distribute Vertically"
           disabled={selectedShapeIds.length < 3}
           onClick={() => handleDistribute('vertical')}
+        />
+        <MenuSeparator />
+        <MenuItem
+          label="Group"
+          shortcut="Ctrl+G"
+          disabled={!hasMultiSelection}
+          onClick={handleGroup}
+        />
+        <MenuItem
+          label="Ungroup"
+          shortcut="Ctrl+Shift+G"
+          disabled={!selectedGroup}
+          onClick={handleUngroup}
         />
       </Menu>
     </header>

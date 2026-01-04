@@ -160,8 +160,8 @@ export interface DiagramData {
   shapes: Record<string, Shape>;
   connections: Record<string, Connection>;
   groups: Record<string, Group>;
-  layers: Layer[];
-  layerOrder: string[];
+  layers: Layer[];          // Minimal default layer in P9; full layer support in P10
+  layerOrder: string[];     // ['default'] until P10
 }
 
 export interface ViewportData {
@@ -476,17 +476,17 @@ export const useFileStore = create<FileStore>()(
 // services/serialization/ndioFormat.ts
 import { NdioFile, DiagramData } from '../../types/file';
 import { useDiagramStore } from '../../stores/diagramStore';
-import { useLayerStore } from '../../stores/layerStore';
 import { useGroupStore } from '../../stores/groupStore';
 import { useUIStore } from '../../stores/uiStore';
+// Note: useLayerStore is used in Phase 10. For now, we use a default layer.
 
 const CURRENT_VERSION = '1.0';
 
 export function serializeDiagram(title: string = 'Untitled'): NdioFile {
   const diagramStore = useDiagramStore.getState();
-  const layerStore = useLayerStore.getState();
   const groupStore = useGroupStore.getState();
   const uiStore = useUIStore.getState();
+  // Note: Layer store used in Phase 10. Default layer for now.
 
   return {
     version: CURRENT_VERSION,
@@ -499,8 +499,9 @@ export function serializeDiagram(title: string = 'Untitled'): NdioFile {
       shapes: diagramStore.shapes,
       connections: diagramStore.connections,
       groups: groupStore.groups,
-      layers: Object.values(layerStore.layers),
-      layerOrder: layerStore.layerOrder,
+      // Minimal layer structure - full layer support in Phase 10
+      layers: [{ id: 'default', name: 'Layer 1', visible: true, locked: false, opacity: 1, createdAt: Date.now() }],
+      layerOrder: ['default'],
     },
     viewport: {
       zoom: uiStore.zoom,
@@ -524,15 +525,12 @@ export function deserializeDiagram(file: NdioFile): void {
   const migrated = migrateIfNeeded(file);
 
   // Load into stores
-  const { shapes, connections, groups, layers, layerOrder } = migrated.diagram;
+  const { shapes, connections, groups } = migrated.diagram;
+  // Note: layers are loaded from file but layer store usage is in Phase 10
 
   useDiagramStore.getState().loadDiagram(shapes, connections);
   useGroupStore.setState({ groups, editingGroupId: null });
-  useLayerStore.setState({
-    layers: Object.fromEntries(layers.map((l) => [l.id, l])),
-    layerOrder,
-    activeLayerId: layerOrder[0] || 'default',
-  });
+  // Layer store initialization is in Phase 10
 
   // Restore viewport
   const { zoom, panOffset } = migrated.viewport;
@@ -1314,8 +1312,9 @@ export function useFileOperations() {
       shapes: data.shapes,
       connections: data.connections,
       groups: {},
-      layers: [],
-      layerOrder: [],
+      // Default layer structure for P9 compatibility
+      layers: [{ id: 'default', name: 'Layer 1', visible: true, locked: false, opacity: 1, createdAt: Date.now() }],
+      layerOrder: ['default'],
     });
 
     const filename = (currentFileName?.replace('.ndio', '') || 'diagram') + '.drawio';
@@ -1662,8 +1661,8 @@ interface CompleteDiagram {
 
   // Organization (P8)
   groups: Record<string, Group>;
-  layers: Layer[];
-  layerOrder: string[];
+  layers: Layer[];            // Minimal in P9; full in P10
+  layerOrder: string[];       // ['default'] in P9; dynamic in P10
 
   // Metadata (P9)
   metadata: {
@@ -1682,7 +1681,7 @@ This model supports:
 - All shape types with styling
 - All connection types with styles
 - Groups with nesting
-- Layers with visibility/locking
+- Basic layer structure (full layer features in Phase 10)
 - Full serialization to .ndio
 - Import/export to draw.io
 - Export to SVG, PNG, PDF

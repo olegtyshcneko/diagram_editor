@@ -142,11 +142,12 @@ Scenario: Save updates existing file
   Note: Browser security prevents overwriting; downloads new file
 
 Scenario: Native format preserves all data
-  Given I save a diagram with shapes, connections, groups, layers
+  Given I save a diagram with shapes, connections, groups
   When I open the saved file
   Then all elements are restored exactly
   And styling, positions, z-order preserved
-  And groups and layers preserved
+  And groups preserved
+  # Note: Full layer persistence comes in Phase 10
 
 Scenario: Save disabled when no changes
   Given I have just saved or opened a file with no changes
@@ -171,7 +172,8 @@ Scenario: Open native format file
   Given I select a .ndio file
   When I click Open
   Then the diagram is loaded onto the canvas
-  And all shapes, connections, groups, layers restored
+  And all shapes, connections, groups restored
+  # Note: Full layer restoration comes in Phase 10
   And the filename appears in the title
 
 Scenario: Open draw.io file
@@ -522,29 +524,32 @@ Scenario: Import curved edges
 
 ---
 
-### E10-US05: Layer Compatibility
+### E10-US05: Layer Compatibility (Minimal)
 
 **As a** user
-**I want** layers to work with draw.io
-**So that** complex diagrams maintain organization
+**I want** basic layer structure for draw.io compatibility
+**So that** diagrams can be opened in draw.io
+
+*Note: Full layer management (visibility, locking, multiple layers) is implemented in Phase 10. For Phase 9, we use a single default layer for draw.io format compatibility.*
 
 ```gherkin
-Scenario: Export layers
-  Given I have a diagram with multiple layers
+Scenario: Export with default layer
+  Given I have a diagram
   When I export to draw.io
-  Then layers appear as mxCell parents in the XML
-  And draw.io recognizes them as layers
+  Then all shapes are on a default layer
+  And the layer structure is valid for draw.io
 
-Scenario: Import layers
-  Given a draw.io file has multiple pages/layers
+Scenario: Import layers from draw.io
+  Given a draw.io file has multiple layers
   When I import it
-  Then layers are created
-  And shapes are on correct layers
+  Then all shapes are placed on the default layer
+  And a warning indicates layers were flattened
+  # Note: Full layer import comes in Phase 10
 
-Scenario: Layer visibility exported
-  Given I have a hidden layer
-  When I export to draw.io
-  Then the layer visibility state is preserved
+Scenario: Native format has layer placeholder
+  Given I save a diagram in .ndio format
+  Then a default layer structure is included
+  And the format is ready for Phase 10 layer support
 ```
 
 ---
@@ -689,8 +694,9 @@ Scenario: Resize imported image
 
 Scenario: Image as background
   Given I insert an image
-  Then I can set it to be on the background layer
+  Then I can send it to back using z-order
   And lock it to prevent accidental selection
+  # Note: Full background layer support comes in Phase 10
 ```
 
 ---
@@ -773,7 +779,7 @@ Scenario: Paste replaces selection
    - Import .drawio files
    - Shape and style mapping
    - Connection type mapping
-   - Layer export/import
+   - Basic layer structure (default layer only; full layer export/import in P10)
 
 7. **Export Formats**
    - SVG export (vector)
@@ -805,7 +811,7 @@ Scenario: Paste replaces selection
 - Complete diagram data model
 - All shape types
 - Connection system with all styles
-- Groups and layers
+- Groups (full layer support in Phase 10)
 - History system
 - Full styling system
 
@@ -814,10 +820,11 @@ Scenario: Paste replaces selection
 | Component/File | Usage |
 |----------------|-------|
 | `useDiagramStore` | Full diagram state for serialization |
-| `useLayerStore` | Layer data for file format |
 | `useGroupStore` | Group data for file format |
 | `Shape`, `Connection` types | Serialization |
 | Canvas component | Image export rendering |
+
+*Note: `useLayerStore` is used in Phase 10. For Phase 9, a minimal default layer is embedded in file format.*
 
 ---
 
@@ -849,7 +856,7 @@ Scenario: Paste replaces selection
 - [ ] Export produces valid .drawio file
 - [ ] Import reads .drawio files
 - [ ] Shapes, connections, styles preserved
-- [ ] Layers exported and imported
+- [ ] Default layer structure in file format (full layers in P10)
 
 ### Export
 - [ ] SVG export works
@@ -951,8 +958,8 @@ interface NdioFile {
     shapes: Record<string, Shape>;
     connections: Record<string, Connection>;
     groups: Record<string, Group>;
-    layers: Layer[];
-    layerOrder: string[];
+    layers: [{ id: 'default', name: 'Layer 1', visible: true, locked: false }];  // Minimal until P10
+    layerOrder: ['default'];  // Single default layer until P10
   };
   viewport: {
     zoom: number;

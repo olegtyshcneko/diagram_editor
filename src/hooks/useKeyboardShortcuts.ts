@@ -3,9 +3,11 @@ import { useInteractionStore } from '@/stores/interactionStore';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { usePreferencesStore } from '@/stores/preferencesStore';
+import { useGroupStore } from '@/stores/groupStore';
 import { useHistory } from '@/hooks/useHistory';
 import { KEYBOARD } from '@/lib/constants';
 import { EMPTY_CONNECTION_DELTA } from '@/types/history';
+import { isCompleteGroupSelected } from '@/lib/groupUtils';
 import type { Shape } from '@/types/shapes';
 import type { Connection } from '@/types/connections';
 
@@ -42,6 +44,10 @@ export function useKeyboardShortcuts() {
   const sendToBack = useDiagramStore((s) => s.sendToBack);
   const bringForward = useDiagramStore((s) => s.bringForward);
   const sendBackward = useDiagramStore((s) => s.sendBackward);
+
+  const groups = useGroupStore((s) => s.groups);
+  const createGroup = useGroupStore((s) => s.createGroup);
+  const ungroup = useGroupStore((s) => s.ungroup);
 
   // Paste with history tracking
   const pasteWithHistory = useCallback(() => {
@@ -236,6 +242,77 @@ export function useKeyboardShortcuts() {
     });
   }, [selectedShapeIds, shapes, bringToFront, sendToBack, bringForward, sendBackward, pushEntry]);
 
+  // Group selected shapes with history tracking
+  const groupWithHistory = useCallback(() => {
+    if (selectedShapeIds.length < 2) return;
+
+    const selectionBefore = [...selectedShapeIds];
+
+    // Create the group
+    const groupId = createGroup(selectedShapeIds);
+    if (!groupId) return;
+
+    // Update shapes with groupId
+    for (const id of selectedShapeIds) {
+      updateShape(id, { groupId });
+    }
+
+    // Push history entry
+    pushEntry({
+      type: 'GROUP',
+      description: `Group ${selectedShapeIds.length} shapes`,
+      shapeDelta: {
+        added: [],
+        removed: [],
+        modified: selectedShapeIds.map((id) => ({
+          id,
+          before: { groupId: undefined },
+          after: { groupId },
+        })),
+      },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore,
+      selectionAfter: selectedShapeIds,
+    });
+  }, [selectedShapeIds, createGroup, updateShape, pushEntry]);
+
+  // Ungroup with history tracking
+  const ungroupWithHistory = useCallback(() => {
+    // Check if selection forms a complete group
+    const selectedGroup = isCompleteGroupSelected(selectedShapeIds, groups);
+    if (!selectedGroup) return;
+
+    const selectionBefore = [...selectedShapeIds];
+    const groupId = selectedGroup.id;
+    const memberIds = [...selectedGroup.memberIds];
+
+    // Ungroup
+    ungroup(groupId);
+
+    // Clear groupId from shapes
+    for (const id of memberIds) {
+      updateShape(id, { groupId: undefined });
+    }
+
+    // Push history entry
+    pushEntry({
+      type: 'UNGROUP',
+      description: `Ungroup ${memberIds.length} shapes`,
+      shapeDelta: {
+        added: [],
+        removed: [],
+        modified: memberIds.map((id) => ({
+          id,
+          before: { groupId },
+          after: { groupId: undefined },
+        })),
+      },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore,
+      selectionAfter: memberIds,
+    });
+  }, [selectedShapeIds, groups, ungroup, updateShape, pushEntry]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't handle shortcuts when typing in inputs
@@ -306,17 +383,17 @@ export function useKeyboardShortcuts() {
           return;
         }
 
-        // Toggle grid visibility - Ctrl+G
-        if (e.key === 'g' && !e.shiftKey) {
+        // Group - Ctrl+G (requires 2+ shapes selected)
+        if (e.key === 'g' && !e.shiftKey && hasSelection && selectedShapeIds.length >= 2) {
           e.preventDefault();
-          toggleGrid();
+          groupWithHistory();
           return;
         }
 
-        // Toggle snap to grid - Ctrl+Shift+G
-        if ((e.key === 'g' || e.key === 'G') && e.shiftKey) {
+        // Ungroup - Ctrl+Shift+G
+        if ((e.key === 'g' || e.key === 'G') && e.shiftKey && hasSelection) {
           e.preventDefault();
-          toggleSnapToGrid();
+          ungroupWithHistory();
           return;
         }
 
@@ -411,8 +488,20 @@ export function useKeyboardShortcuts() {
           case 'c':
             setActiveTool('connection');
             break;
+          case 'g':
+            // G toggles grid, Shift+G toggles snap to grid
+            if (!ctrlOrMeta) {
+              e.preventDefault();
+              if (e.shiftKey) {
+                toggleSnapToGrid();
+              } else {
+                toggleGrid();
+              }
+            }
+            break;
           case 'escape':
             // Cancel any in-progress operation
+            // Note: Escape does NOT exit group edit mode (click outside to exit instead)
             if (isCreatingConnection) {
               endConnectionCreation();
             } else if (creationState) {
@@ -458,5 +547,7 @@ export function useKeyboardShortcuts() {
     toggleGrid,
     toggleSnapToGrid,
     zOrderWithHistory,
+    groupWithHistory,
+    ungroupWithHistory,
   ]);
 }

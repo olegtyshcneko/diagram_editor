@@ -19,10 +19,17 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P5.1 | Text & Connection Fixes | **Completed** | [requirements_p5.1.md](./requirements_p5.1.md) | [spec_p5.1.md](./spec_p5.1.md) | [todo_p5.1.md](./todo_p5.1.md) |
 | P5.2 | Automatic Text Wrapping | **Completed** | [requirements_p5.2.md](./requirements_p5.2.md) | [spec_p5.2.md](./spec_p5.2.md) | [todo_p5.2.md](./todo_p5.2.md) |
 | P6 | Multi-Selection | **Completed** | [requirements_p6.md](./requirements_p6.md) | [spec_p6.md](./spec_p6.md) | [todo_p6.md](./todo_p6.md) |
-| P7 | History & Grid | **In Progress** | [requirements_p7.md](./requirements_p7.md) | [spec_p7.md](./spec_p7.md) | [todo_p7.md](./todo_p7.md) |
-| P7.1 | P7 Bug Fixes & Completion | Not Started | [requirements_p7.1.md](./requirements_p7.1.md) | [spec_p7.1.md](./spec_p7.1.md) | - |
-| P8 | Organization | Not Started | [requirements_p8.md](./requirements_p8.md) | [spec_p8.md](./spec_p8.md) | - |
+| P7 | History & Grid | **Completed** | [requirements_p7.md](./requirements_p7.md) | [spec_p7.md](./spec_p7.md) | [todo_p7.md](./todo_p7.md) |
+| P7.1 | P7 Bug Fixes & Completion | **Completed** | [requirements_p7.1.md](./requirements_p7.1.md) | [spec_p7.1.md](./spec_p7.1.md) | [todo_p7.1.md](./todo_p7.1.md) |
+| P8 | Organization (Parent) | Not Started | [requirements_p8.md](./requirements_p8.md) | [spec_p8.md](./spec_p8.md) | - |
+| P8.1 | Groups | **Completed** | [requirements_p8.1.md](./requirements_p8.1.md) | [spec_p8.1.md](./spec_p8.1.md) | [todo_p8.1.md](./todo_p8.1.md) |
+| P8.1.1 | Group Resize & Rotation | **Completed** | [requirements_p8.1.1.md](./requirements_p8.1.1.md) | [spec_p8.1.1.md](./spec_p8.1.1.md) | [todo_p8.1.1.md](./todo_p8.1.1.md) |
+| P8.3 | Curved Connections | Not Started | [requirements_p8.3.md](./requirements_p8.3.md) | [spec_p8.3.md](./spec_p8.3.md) | - |
+| P8.4 | Orthogonal Connections | Not Started | [requirements_p8.4.md](./requirements_p8.4.md) | [spec_p8.4.md](./spec_p8.4.md) | - |
+| P8.5 | Labels & Waypoints | Not Started | [requirements_p8.5.md](./requirements_p8.5.md) | [spec_p8.5.md](./spec_p8.5.md) | - |
+| P8.6 | Disconnect & Targeting | Not Started | [requirements_p8.6.md](./requirements_p8.6.md) | [spec_p8.6.md](./spec_p8.6.md) | - |
 | P9 | File Operations | Not Started | [requirements_p9.md](./requirements_p9.md) | [spec_p9.md](./spec_p9.md) | - |
+| P10 | Layers | Not Started | [requirements_p10.md](./requirements_p10.md) | [spec_p10.md](./spec_p10.md) | - |
 
 ---
 
@@ -61,11 +68,32 @@ Undo/redo stack, grid display and snap, keyboard shortcuts, context menu.
 ### P7.1: P7 Bug Fixes & Completion
 Fix context menu click actions (KI-006), fix resize/rotation history (KI-007). Complete history tracking for style changes, text edits, connection creation, alignment/distribution, z-order. Create menu bar with Edit, View, Arrange menus.
 
-### P8: Organization
-Shape grouping, layer ordering (z-index), orthogonal/curved connections.
+### P8: Organization (Parent)
+Shape grouping and advanced connections. Divided into sub-phases:
+
+### P8.1: Groups
+Group/ungroup shapes (Ctrl+G, Ctrl+Shift+G), group edit mode (double-click), nested groups, group-aware selection.
+
+### P8.1.1: Group Resize & Rotation
+Unified group selection (single bounding box, no individual handles), group resize (scale all members proportionally), group rotation (rotate around group center), Shift/Alt modifiers.
+
+### P8.3: Curved Connections
+Bezier curve connections, automatic control points, manual control point adjustment, curves update when shapes move.
+
+### P8.4: Orthogonal Connections
+Right-angle connections (H/V segments only), auto-routing with L/Z/U-shaped paths, path recalculates on shape move.
+
+### P8.5: Labels & Waypoints
+Double-click connection to add label, label positioning, waypoints to control path, add/move/remove waypoints.
+
+### P8.6: Disconnect & Targeting
+Drag endpoint to disconnect, floating endpoint visual, reattach to anchors, shape-level targeting (drop on shape body), auto-select best anchor.
 
 ### P9: File Operations
 Save/load JSON, export to PNG/SVG, import from files.
+
+### P10: Layers
+Layers panel, create/delete/rename layers, visibility toggle, layer locking, reorder layers, move shapes between layers.
 
 ---
 
@@ -163,3 +191,48 @@ Save/load JSON, export to PNG/SVG, import from files.
 - Alignment tools in Property Panel: Left, Center, Right, Top, Middle, Bottom (requires 2+ shapes)
 - Distribution tools: Horizontal, Vertical (requires 3+ shapes)
 - 8 new files created, 9 files modified
+
+### P7 - Completed
+- Undo/Redo: Full history system with Ctrl+Z/Ctrl+Y support
+- History tracking for: create, delete, move, resize, rotate shapes
+- Grid display: Dots pattern, toggle with G key
+- Snap to grid: Toggle with Shift+G, snaps position and size
+- Grid size configurable (10-50px in 10px increments)
+- Context menu: Right-click on shapes for Cut, Copy, Paste, etc.
+- Keyboard shortcuts: Comprehensive shortcut support
+- Z-order controls: Ctrl+], Ctrl+[, Ctrl+Shift+], Ctrl+Shift+[
+- 10 new files created, multiple files modified
+
+### P7.1 - Completed
+- Fixed KI-006: Context menu clicks now work on shapes
+- Fixed KI-007: Resize and rotation operations tracked in undo history
+  - Root cause: React StrictMode creates multiple component instances with separate refs
+  - Fix: Use global Zustand store (manipulationState) as single source of truth
+- History tracking added for: fill/stroke changes, text edits, connection creation, alignment/distribution, z-order
+- Menu bar: Edit menu (Undo/Redo, Cut/Copy/Paste, Delete, Select All), View menu (Grid, Snap, Zoom), Arrange menu (Z-order, Alignment, Distribution)
+- Undo shows action description in menu
+- Disabled state for unavailable menu actions
+
+### P8.1 - Completed
+- Group/Ungroup shapes: Ctrl+G to group, Ctrl+Shift+G to ungroup
+- Keyboard shortcuts reassigned: G toggles grid, Shift+G toggles snap to grid
+- Group-aware selection: Clicking any grouped shape selects entire group
+- Group edit mode: Double-click group to enter, click outside to exit
+- In edit mode: Select/move individual shapes within group
+- Visual feedback: Blue dashed overlay for selected groups, orange dashed boundary + dimmed shapes in edit mode
+- Nested groups: Groups can contain other groups, parent chain traversal
+- History integration: Undo/redo works for group/ungroup operations via shape groupId sync
+- Menu integration: Group/Ungroup in Arrange menu and context menu
+- 6 new files created, 9 files modified
+
+### P8.1.1 - Completed
+- Unified group selection: Single bounding box with handles when group is selected
+- Individual shape handles hidden when group is fully selected
+- Group resize: Drag handles to scale all member shapes proportionally
+- Shift modifier: Maintain aspect ratio during resize
+- Alt modifier: Resize from center
+- Group rotation: Rotate handle rotates all shapes around group center
+- Shift modifier: Snap rotation to 15° increments
+- Group edit mode exit behavior changed: Click outside to exit (Escape no longer exits)
+- Full undo/redo support for group resize and rotation
+- 4 new files created, 5 files modified

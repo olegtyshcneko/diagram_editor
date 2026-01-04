@@ -58,6 +58,9 @@ export interface Shape {
   locked: boolean;
   visible: boolean;
   zIndex: number;
+
+  // Grouping
+  groupId?: string;
 }
 
 // Default shape values

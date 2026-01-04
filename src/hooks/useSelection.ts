@@ -50,6 +50,7 @@ export function useSelection({ containerSize }: UseSelectionProps) {
 
       // Only clear selection if clicked on empty canvas (no shape hit)
       // Shape clicks are handled by Shape.tsx mouseDown with multi-select support
+      // Note: Group edit mode exit is handled in CanvasContainer.handleMouseDown
       if (!hitShape) {
         clearSelection();
       }

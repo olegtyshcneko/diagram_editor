@@ -11,6 +11,8 @@ import { CreationPreview } from './CreationPreview';
 import { SelectionBoxLayer } from './SelectionBoxLayer';
 import { RotationAngleDisplay } from './RotationAngleDisplay';
 import { GridBackground } from './GridBackground';
+import { GroupOverlay } from './GroupOverlay';
+import { GroupEditMode } from './GroupEditMode';
 
 interface CanvasProps {
   viewport: Viewport;
@@ -81,6 +83,12 @@ export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
           onShapeHover={onShapeHover}
           onShapeDoubleClick={onShapeDoubleClick}
         />
+
+        {/* Group edit mode overlay (dims non-group shapes) */}
+        <GroupEditMode />
+
+        {/* Group selection overlay (shows group bounds) */}
+        <GroupOverlay />
 
         {/* Anchor points overlay (for connection creation) */}
         <AnchorPointsOverlay

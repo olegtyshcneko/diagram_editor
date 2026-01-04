@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { usePreferencesStore } from '@/stores/preferencesStore';
+import { useGroupStore } from '@/stores/groupStore';
 import { useHistory } from '@/hooks/useHistory';
 import type { Point } from '@/types/common';
 import type { ContextMenuType, ContextMenuState, ContextMenuEntry } from '@/types/contextMenu';
@@ -9,6 +10,7 @@ import type { Shape } from '@/types/shapes';
 import type { Connection } from '@/types/connections';
 import type { AlignmentType } from '@/types/selection';
 import { EMPTY_CONNECTION_DELTA } from '@/types/history';
+import { isCompleteGroupSelected } from '@/lib/groupUtils';
 
 /**
  * Hook for managing context menu state and providing menu items
@@ -46,6 +48,12 @@ export function useContextMenu() {
   // Preferences
   const toggleGrid = usePreferencesStore((s) => s.toggleGrid);
   const showGrid = usePreferencesStore((s) => s.showGrid);
+
+  // Groups
+  const groups = useGroupStore((s) => s.groups);
+  const createGroup = useGroupStore((s) => s.createGroup);
+  const ungroup = useGroupStore((s) => s.ungroup);
+  const updateShape = useDiagramStore((s) => s.updateShape);
 
   // Open context menu
   const openMenu = useCallback((
@@ -295,6 +303,82 @@ export function useContextMenu() {
     closeMenu();
   }, [selectedShapeIds, shapes, bringToFront, sendToBack, bringForward, sendBackward, pushEntry, closeMenu]);
 
+  // Check if selection forms a complete group
+  const selectedGroup = isCompleteGroupSelected(selectedShapeIds, groups);
+
+  // Group with history
+  const handleGroup = useCallback(() => {
+    if (selectedShapeIds.length < 2) return;
+
+    const selectionBefore = [...selectedShapeIds];
+
+    // Create the group
+    const groupId = createGroup(selectedShapeIds);
+    if (!groupId) return;
+
+    // Update shapes with groupId
+    for (const id of selectedShapeIds) {
+      updateShape(id, { groupId });
+    }
+
+    // Push history entry
+    pushEntry({
+      type: 'GROUP',
+      description: `Group ${selectedShapeIds.length} shapes`,
+      shapeDelta: {
+        added: [],
+        removed: [],
+        modified: selectedShapeIds.map((id) => ({
+          id,
+          before: { groupId: undefined },
+          after: { groupId },
+        })),
+      },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore,
+      selectionAfter: selectedShapeIds,
+    });
+
+    closeMenu();
+  }, [selectedShapeIds, createGroup, updateShape, pushEntry, closeMenu]);
+
+  // Ungroup with history
+  const handleUngroup = useCallback(() => {
+    if (!selectedGroup) return;
+
+    const selectionBefore = [...selectedShapeIds];
+    const groupId = selectedGroup.id;
+    const memberIds = [...selectedGroup.memberIds];
+
+    // Ungroup
+    ungroup(groupId);
+
+    // Clear groupId from shapes
+    for (const id of memberIds) {
+      updateShape(id, { groupId: undefined });
+    }
+
+    // Push history entry
+    pushEntry({
+      type: 'UNGROUP',
+      description: `Ungroup ${memberIds.length} shapes`,
+      shapeDelta: {
+        added: [],
+        removed: [],
+        modified: memberIds.map((id) => ({
+          id,
+          before: { groupId },
+          after: { groupId: undefined },
+        })),
+      },
+      connectionDelta: EMPTY_CONNECTION_DELTA,
+      selectionBefore,
+      selectionAfter: memberIds,
+    });
+
+    closeMenu();
+  }, [selectedGroup, selectedShapeIds, ungroup, updateShape, pushEntry, closeMenu]);
+
   // Generate menu items based on context
   const menuItems = useMemo<ContextMenuEntry[]>(() => {
     const hasSelection = selectedShapeIds.length > 0;
@@ -323,6 +407,9 @@ export function useContextMenu() {
           { id: 'paste', label: 'Paste', shortcut: 'Ctrl+V', action: handlePaste, disabled: !clipboard },
           { id: 'duplicate', label: 'Duplicate', shortcut: 'Ctrl+D', action: handleDuplicate },
           { separator: true },
+          { id: 'group', label: 'Group', shortcut: 'Ctrl+G', action: handleGroup, disabled: !hasMultiSelection },
+          { id: 'ungroup', label: 'Ungroup', shortcut: 'Ctrl+Shift+G', action: handleUngroup, disabled: !selectedGroup },
+          { separator: true },
           { id: 'alignLeft', label: 'Align Left', action: () => handleAlign('left'), disabled: !hasMultiSelection },
           { id: 'alignCenter', label: 'Align Center', action: () => handleAlign('centerHorizontal'), disabled: !hasMultiSelection },
           { id: 'alignRight', label: 'Align Right', action: () => handleAlign('right'), disabled: !hasMultiSelection },
@@ -345,7 +432,7 @@ export function useContextMenu() {
           { separator: true },
           { id: 'selectAll', label: 'Select All', shortcut: 'Ctrl+A', action: () => { selectAll(); closeMenu(); } },
           { separator: true },
-          { id: 'toggleGrid', label: showGrid ? 'Hide Grid' : 'Show Grid', shortcut: 'Ctrl+G', action: () => { toggleGrid(); closeMenu(); } },
+          { id: 'toggleGrid', label: showGrid ? 'Hide Grid' : 'Show Grid', shortcut: 'G', action: () => { toggleGrid(); closeMenu(); } },
           { separator: true },
           { id: 'undo', label: 'Undo', shortcut: 'Ctrl+Z', action: () => { undo(); closeMenu(); }, disabled: !canUndo() },
           { id: 'redo', label: 'Redo', shortcut: 'Ctrl+Y', action: () => { redo(); closeMenu(); }, disabled: !canRedo() },
@@ -364,6 +451,7 @@ export function useContextMenu() {
     selectedShapeIds,
     clipboard,
     showGrid,
+    selectedGroup,
     handleCut,
     copySelection,
     handlePaste,
@@ -372,6 +460,8 @@ export function useContextMenu() {
     handleAlign,
     handleDistribute,
     handleZOrder,
+    handleGroup,
+    handleUngroup,
     selectAll,
     toggleGrid,
     undo,

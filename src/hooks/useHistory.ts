@@ -1,7 +1,58 @@
 import { useCallback } from 'react';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useDiagramStore } from '@/stores/diagramStore';
+import { useGroupStore } from '@/stores/groupStore';
 import type { HistoryEntry } from '@/types/history';
+import type { Shape } from '@/types/shapes';
+
+/**
+ * Synchronize group store with shape groupId fields.
+ * Rebuilds groups based on shapes' groupId fields.
+ */
+function syncGroupStore(shapes: Record<string, Shape>) {
+  const groupStore = useGroupStore.getState();
+  const currentGroups = { ...groupStore.groups };
+
+  // Collect all groupIds from shapes
+  const groupIdsInUse = new Set<string>();
+  const membersByGroupId = new Map<string, string[]>();
+
+  for (const shape of Object.values(shapes)) {
+    if (shape.groupId) {
+      groupIdsInUse.add(shape.groupId);
+      const members = membersByGroupId.get(shape.groupId) || [];
+      members.push(shape.id);
+      membersByGroupId.set(shape.groupId, members);
+    }
+  }
+
+  // Remove groups that are no longer referenced
+  for (const groupId of Object.keys(currentGroups)) {
+    if (!groupIdsInUse.has(groupId)) {
+      delete currentGroups[groupId];
+    }
+  }
+
+  // Add/update groups that are referenced by shapes
+  for (const [groupId, memberIds] of membersByGroupId) {
+    if (!currentGroups[groupId]) {
+      // Create group that doesn't exist
+      currentGroups[groupId] = {
+        id: groupId,
+        memberIds,
+      };
+    } else {
+      // Update existing group's members
+      currentGroups[groupId] = {
+        ...currentGroups[groupId],
+        memberIds,
+      };
+    }
+  }
+
+  // Update group store
+  useGroupStore.setState({ groups: currentGroups });
+}
 
 /**
  * Hook that provides undo/redo functionality by applying history deltas to the diagram store.
@@ -61,6 +112,11 @@ export function useHistory() {
       selectedConnectionIds: [],
       isDirty: true,
     });
+
+    // Sync group store with updated shapes (handles GROUP/UNGROUP undo)
+    if (entry.type === 'GROUP' || entry.type === 'UNGROUP') {
+      syncGroupStore(newShapes);
+    }
   }, []);
 
   /**
@@ -113,6 +169,11 @@ export function useHistory() {
       selectedConnectionIds: [],
       isDirty: true,
     });
+
+    // Sync group store with updated shapes (handles GROUP/UNGROUP redo)
+    if (entry.type === 'GROUP' || entry.type === 'UNGROUP') {
+      syncGroupStore(newShapes);
+    }
   }, []);
 
   /**

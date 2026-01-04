@@ -9,13 +9,9 @@ App
 ├── MenuBar (extended with Arrange menu)
 ├── Toolbar
 ├── MainLayout
-│   ├── LayersPanel (new)
-│   │   ├── LayerItem
-│   │   └── LayerControls
 │   ├── Canvas
 │   │   ├── GridBackground
-│   │   ├── LayerRenderer (new)
-│   │   │   └── ShapeRenderer (per layer)
+│   │   ├── ShapeRenderer
 │   │   ├── ConnectionRenderer (extended)
 │   │   │   ├── StraightConnection
 │   │   │   ├── CurvedConnection (new)
@@ -28,25 +24,11 @@ App
 └── StatusBar
 ```
 
+*Note: LayersPanel, LayerRenderer, and layer-related components are implemented in Phase 10.*
+
 ### State Management Updates
 
 ```typescript
-// useLayerStore.ts - New store for layers
-interface LayerStore {
-  layers: Record<string, Layer>;
-  layerOrder: string[]; // IDs in render order
-  activeLayerId: string;
-
-  // Actions
-  addLayer: (name?: string) => string;
-  deleteLayer: (id: string, moveShapesTo?: string) => void;
-  renameLayer: (id: string, name: string) => void;
-  setLayerVisibility: (id: string, visible: boolean) => void;
-  setLayerLocked: (id: string, locked: boolean) => void;
-  reorderLayers: (newOrder: string[]) => void;
-  setActiveLayer: (id: string) => void;
-}
-
 // useGroupStore.ts - New store for groups
 interface GroupStore {
   groups: Record<string, Group>;
@@ -66,10 +48,6 @@ interface DiagramStore {
   shapes: Record<string, Shape>;
   connections: Record<string, Connection>;
 
-  // Extended shape with layer/group
-  updateShapeLayer: (shapeId: string, layerId: string) => void;
-  getShapesByLayer: (layerId: string) => Shape[];
-
   // Extended connection with waypoints
   addWaypoint: (connectionId: string, point: Point, index?: number) => void;
   updateWaypoint: (connectionId: string, index: number, point: Point) => void;
@@ -77,6 +55,8 @@ interface DiagramStore {
   setConnectionLabel: (connectionId: string, label: ConnectionLabel | null) => void;
   setConnectionStyle: (connectionId: string, style: ConnectionStyle) => void;
 }
+
+// Note: Layer-related store (useLayerStore) is implemented in Phase 10
 ```
 
 ---
@@ -88,16 +68,13 @@ interface DiagramStore {
 ```
 src/
 ├── stores/
-│   ├── layerStore.ts             # Layer state management
 │   └── groupStore.ts             # Group state management
 ├── hooks/
-│   ├── useLayers.ts              # Layer operations hook
 │   ├── useGroups.ts              # Group operations hook
 │   ├── useConnectionRouting.ts   # Path calculation hook
 │   └── useWaypoints.ts           # Waypoint management hook
 ├── components/
 │   ├── canvas/
-│   │   ├── LayerRenderer.tsx     # Renders shapes by layer
 │   │   ├── GroupOverlay.tsx      # Group selection visuals
 │   │   ├── GroupEditMode.tsx     # Group edit mode UI
 │   │   └── connections/
@@ -107,10 +84,6 @@ src/
 │   │       ├── ConnectionLabel.tsx
 │   │       ├── ConnectionControlPoints.tsx
 │   │       └── ShapeConnectionHighlight.tsx
-│   └── panels/
-│       ├── LayersPanel.tsx
-│       ├── LayerItem.tsx
-│       └── LayerControls.tsx
 ├── utils/
 │   ├── bezierUtils.ts            # Bezier curve calculations
 │   ├── orthogonalRouting.ts      # Orthogonal path finding
@@ -118,64 +91,39 @@ src/
 │   ├── groupUtils.ts             # Group operations
 │   └── anchorSelection.ts        # Best anchor calculation for shape-level targeting
 └── types/
-    ├── layer.ts                  # Layer types
     ├── group.ts                  # Group types
     └── connectionAdvanced.ts     # Extended connection types
 ```
+
+*Note: Layer-related files (layerStore.ts, useLayers.ts, LayersPanel, LayerRenderer, layer.ts) are implemented in Phase 10.*
 
 ### Files to Modify
 
 ```
 src/
 ├── stores/
-│   └── diagramStore.ts           # Add layer/group refs, waypoints
+│   └── diagramStore.ts           # Add group refs, waypoints
 ├── components/
 │   ├── canvas/
-│   │   ├── Canvas.tsx            # Integrate layers, groups
+│   │   ├── Canvas.tsx            # Integrate groups
 │   │   └── ConnectionRenderer.tsx # Support multiple styles
 │   ├── MenuBar.tsx               # Arrange menu with group options
 │   └── PropertyPanel.tsx         # Connection style options
 ├── hooks/
 │   ├── useSelection.ts           # Group-aware selection
-│   └── useShapeManipulation.ts   # Layer-aware operations
+│   └── useShapeManipulation.ts   # Group-aware operations
 └── types/
-    ├── shape.ts                  # Add layerId, groupId
+    ├── shape.ts                  # Add groupId
     └── connection.ts             # Add waypoints, style, label
 ```
+
+*Note: `layerId` field added to Shape type in Phase 10.*
 
 ---
 
 ## Key Interfaces & Types
 
-### Layer Types
-
-```typescript
-// types/layer.ts
-
-export interface Layer {
-  id: string;
-  name: string;
-  visible: boolean;
-  locked: boolean;
-  opacity: number;       // 0-1, for future use
-  createdAt: number;
-}
-
-export interface LayerState {
-  layers: Record<string, Layer>;
-  layerOrder: string[];  // Render order (bottom to top)
-  activeLayerId: string;
-}
-
-export const DEFAULT_LAYER: Layer = {
-  id: 'default',
-  name: 'Layer 1',
-  visible: true,
-  locked: false,
-  opacity: 1,
-  createdAt: Date.now(),
-};
-```
+*Note: Layer Types are defined in Phase 10.*
 
 ### Group Types
 
@@ -197,7 +145,7 @@ export interface GroupState {
 // Extended shape type
 export interface ShapeWithGroup extends Shape {
   groupId?: string;
-  layerId: string;
+  // layerId: string;  // Added in Phase 10
 }
 ```
 
@@ -244,227 +192,82 @@ export interface AdvancedConnection extends Connection {
 
 ## Implementation Order
 
-### Step 1: Layer System Foundation
+*Note: Steps 1-3 (Layer System) are implemented in Phase 10.*
 
-1. Create `types/layer.ts`
-2. Create `stores/layerStore.ts`
-3. Create `hooks/useLayers.ts`
-4. Extend Shape type with `layerId`
+### Step 1: Group System Foundation
 
-### Step 2: Layers UI
+1. Create `types/group.ts`
+2. Create `stores/groupStore.ts`
+3. Create `hooks/useGroups.ts`
+4. Extend Shape type with `groupId`
 
-5. Create `LayersPanel.tsx` component
-6. Create `LayerItem.tsx` component
-7. Add layers panel toggle to View menu
-8. Integrate with main layout
+### Step 2: Group Operations
 
-### Step 3: Layer Functionality
+5. Implement `createGroup` action
+6. Implement `ungroup` action
+7. Create `GroupOverlay.tsx` for visual feedback
+8. Implement group-aware selection
 
-9. Create `LayerRenderer.tsx` for layer-based rendering
-10. Implement layer visibility logic
-11. Implement layer locking logic
-12. Implement layer reordering
+### Step 3: Group Edit Mode
 
-### Step 4: Group System Foundation
+9. Create `GroupEditMode.tsx`
+10. Implement `enterGroupEdit` / `exitGroupEdit`
+11. Add visual dimming for non-group shapes
+12. Update selection behavior in edit mode
 
-13. Create `types/group.ts`
-14. Create `stores/groupStore.ts`
-15. Create `hooks/useGroups.ts`
-16. Extend Shape type with `groupId`
+### Step 4: Curved Connections
 
-### Step 5: Group Operations
+13. Create `utils/bezierUtils.ts`
+14. Create `CurvedConnection.tsx` component
+15. Create `ConnectionControlPoints.tsx`
+16. Add curve style to property panel
 
-17. Implement `createGroup` action
-18. Implement `ungroup` action
-19. Create `GroupOverlay.tsx` for visual feedback
-20. Implement group-aware selection
+### Step 5: Orthogonal Connections
 
-### Step 6: Group Edit Mode
+17. Create `utils/orthogonalRouting.ts`
+18. Create `OrthogonalConnection.tsx` component
+19. Implement auto-routing algorithm
 
-21. Create `GroupEditMode.tsx`
-22. Implement `enterGroupEdit` / `exitGroupEdit`
-23. Add visual dimming for non-group shapes
-24. Update selection behavior in edit mode
+### Step 6: Connection Labels
 
-### Step 7: Curved Connections
+20. Create `ConnectionLabel.tsx` component
+21. Implement label positioning along path
+22. Add label editing via double-click
+23. Add label styling to property panel
 
-25. Create `utils/bezierUtils.ts`
-26. Create `CurvedConnection.tsx` component
-27. Create `ConnectionControlPoints.tsx`
-28. Add curve style to property panel
+### Step 7: Waypoints
 
-### Step 8: Orthogonal Connections
+24. Create `hooks/useWaypoints.ts`
+25. Create `ConnectionWaypoints.tsx`
+26. Implement add/move/remove waypoint logic
+27. Integrate waypoints with all connection styles
 
-29. Create `utils/orthogonalRouting.ts`
-30. Create `OrthogonalConnection.tsx` component
-31. Implement auto-routing algorithm
+### Step 8: Disconnect/Reconnect
 
-### Step 9: Connection Labels
+28. Implement endpoint dragging
+29. Add floating endpoint visual state
+30. Implement anchor snapping for reattachment
 
-32. Create `ConnectionLabel.tsx` component
-33. Implement label positioning along path
-34. Add label editing via double-click
-35. Add label styling to property panel
+### Step 9: Shape-Level Connection Targeting
 
-### Step 10: Waypoints
+31. Create `utils/anchorSelection.ts` for best anchor calculation
+32. Update `useConnectionCreation` hook for shape-level targeting
+33. Add shape highlight state during connection drag
+34. Implement approach-direction-based anchor selection
+35. Add snap-to-anchor override when close to specific anchor
 
-36. Create `hooks/useWaypoints.ts`
-37. Create `ConnectionWaypoints.tsx`
-38. Implement add/move/remove waypoint logic
-39. Integrate waypoints with all connection styles
+### Step 10: Menu Integration
 
-### Step 11: Disconnect/Reconnect
-
-40. Implement endpoint dragging
-41. Add floating endpoint visual state
-42. Implement anchor snapping for reattachment
-
-### Step 11.5: Shape-Level Connection Targeting
-
-43. Create `utils/anchorSelection.ts` for best anchor calculation
-44. Update `useConnectionCreation` hook for shape-level targeting
-45. Add shape highlight state during connection drag
-46. Implement approach-direction-based anchor selection
-47. Add snap-to-anchor override when close to specific anchor
-
-### Step 12: Menu Integration
-
-43. Add Arrange > Group/Ungroup menu items
-44. Add Arrange > Group submenu
-45. Update context menus with group options
-46. Add keyboard shortcuts
+36. Add Arrange > Group/Ungroup menu items
+37. Add Arrange > Group submenu
+38. Update context menus with group options
+39. Add keyboard shortcuts
 
 ---
 
 ## Code Patterns
 
-### Layer Store Implementation
-
-```typescript
-// stores/layerStore.ts
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { nanoid } from 'nanoid';
-import { Layer, DEFAULT_LAYER } from '../types/layer';
-
-interface LayerStore {
-  layers: Record<string, Layer>;
-  layerOrder: string[];
-  activeLayerId: string;
-
-  addLayer: (name?: string) => string;
-  deleteLayer: (id: string, moveShapesTo?: string) => void;
-  renameLayer: (id: string, name: string) => void;
-  setLayerVisibility: (id: string, visible: boolean) => void;
-  setLayerLocked: (id: string, locked: boolean) => void;
-  reorderLayers: (newOrder: string[]) => void;
-  setActiveLayer: (id: string) => void;
-  getVisibleLayers: () => Layer[];
-  isLayerEditable: (id: string) => boolean;
-}
-
-export const useLayerStore = create<LayerStore>()(
-  persist(
-    (set, get) => ({
-      layers: { [DEFAULT_LAYER.id]: DEFAULT_LAYER },
-      layerOrder: [DEFAULT_LAYER.id],
-      activeLayerId: DEFAULT_LAYER.id,
-
-      addLayer: (name) => {
-        const id = nanoid();
-        const layerCount = Object.keys(get().layers).length;
-        const newLayer: Layer = {
-          id,
-          name: name || `Layer ${layerCount + 1}`,
-          visible: true,
-          locked: false,
-          opacity: 1,
-          createdAt: Date.now(),
-        };
-
-        set((state) => ({
-          layers: { ...state.layers, [id]: newLayer },
-          layerOrder: [...state.layerOrder, id],
-          activeLayerId: id,
-        }));
-
-        return id;
-      },
-
-      deleteLayer: (id, moveShapesTo) => {
-        const { layers, layerOrder } = get();
-        if (layerOrder.length <= 1) return; // Can't delete last layer
-
-        // Move shapes handled externally via useLayers hook
-        const { [id]: _, ...remainingLayers } = layers;
-        const newOrder = layerOrder.filter((lid) => lid !== id);
-        const newActiveId = moveShapesTo || newOrder[newOrder.length - 1];
-
-        set({
-          layers: remainingLayers,
-          layerOrder: newOrder,
-          activeLayerId: newActiveId,
-        });
-      },
-
-      renameLayer: (id, name) => {
-        set((state) => ({
-          layers: {
-            ...state.layers,
-            [id]: { ...state.layers[id], name },
-          },
-        }));
-      },
-
-      setLayerVisibility: (id, visible) => {
-        set((state) => ({
-          layers: {
-            ...state.layers,
-            [id]: { ...state.layers[id], visible },
-          },
-        }));
-      },
-
-      setLayerLocked: (id, locked) => {
-        set((state) => ({
-          layers: {
-            ...state.layers,
-            [id]: { ...state.layers[id], locked },
-          },
-        }));
-      },
-
-      reorderLayers: (newOrder) => {
-        set({ layerOrder: newOrder });
-      },
-
-      setActiveLayer: (id) => {
-        set({ activeLayerId: id });
-      },
-
-      getVisibleLayers: () => {
-        const { layers, layerOrder } = get();
-        return layerOrder
-          .map((id) => layers[id])
-          .filter((layer) => layer.visible);
-      },
-
-      isLayerEditable: (id) => {
-        const layer = get().layers[id];
-        return layer?.visible && !layer?.locked;
-      },
-    }),
-    {
-      name: 'naive-draw-layers',
-      partialize: (state) => ({
-        layers: state.layers,
-        layerOrder: state.layerOrder,
-        activeLayerId: state.activeLayerId,
-      }),
-    }
-  )
-);
-```
+*Note: Layer Store Implementation is in Phase 10.*
 
 ### Group Store Implementation
 
@@ -981,164 +784,7 @@ export const CurvedConnection: React.FC<CurvedConnectionProps> = ({
 };
 ```
 
-### Layers Panel Component
-
-```typescript
-// components/panels/LayersPanel.tsx
-import React from 'react';
-import { useLayerStore } from '../../stores/layerStore';
-import { useDiagramStore } from '../../stores/diagramStore';
-import { LayerItem } from './LayerItem';
-import { Eye, EyeOff, Lock, Unlock, Plus, Trash2 } from 'lucide-react';
-
-export const LayersPanel: React.FC = () => {
-  const {
-    layers,
-    layerOrder,
-    activeLayerId,
-    addLayer,
-    deleteLayer,
-    setActiveLayer,
-    reorderLayers,
-  } = useLayerStore();
-
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-
-    const newOrder = Array.from(layerOrder);
-    const [removed] = newOrder.splice(result.source.index, 1);
-    newOrder.splice(result.destination.index, 0, removed);
-
-    reorderLayers(newOrder);
-  };
-
-  return (
-    <div className="layers-panel w-64 border-l bg-white flex flex-col">
-      {/* Header */}
-      <div className="px-3 py-2 border-b flex items-center justify-between">
-        <span className="font-medium text-sm">Layers</span>
-        <button
-          onClick={() => addLayer()}
-          className="p-1 hover:bg-gray-100 rounded"
-          title="Add Layer"
-        >
-          <Plus size={16} />
-        </button>
-      </div>
-
-      {/* Layer List - reversed for visual order (top layer first) */}
-      <div className="flex-1 overflow-y-auto">
-        {[...layerOrder].reverse().map((layerId, index) => {
-          const layer = layers[layerId];
-          if (!layer) return null;
-
-          return (
-            <LayerItem
-              key={layer.id}
-              layer={layer}
-              isActive={layer.id === activeLayerId}
-              onSelect={() => setActiveLayer(layer.id)}
-              onDelete={layerOrder.length > 1 ? () => deleteLayer(layer.id) : undefined}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// LayerItem.tsx
-interface LayerItemProps {
-  layer: Layer;
-  isActive: boolean;
-  onSelect: () => void;
-  onDelete?: () => void;
-}
-
-export const LayerItem: React.FC<LayerItemProps> = ({
-  layer,
-  isActive,
-  onSelect,
-  onDelete,
-}) => {
-  const { setLayerVisibility, setLayerLocked, renameLayer } = useLayerStore();
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [editName, setEditName] = React.useState(layer.name);
-
-  const handleNameSubmit = () => {
-    renameLayer(layer.id, editName);
-    setIsEditing(false);
-  };
-
-  return (
-    <div
-      className={`
-        flex items-center px-3 py-2 border-b cursor-pointer
-        ${isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}
-      `}
-      onClick={onSelect}
-    >
-      {/* Visibility toggle */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setLayerVisibility(layer.id, !layer.visible);
-        }}
-        className="p-1 hover:bg-gray-200 rounded mr-1"
-      >
-        {layer.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-gray-400" />}
-      </button>
-
-      {/* Lock toggle */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setLayerLocked(layer.id, !layer.locked);
-        }}
-        className="p-1 hover:bg-gray-200 rounded mr-2"
-      >
-        {layer.locked ? <Lock size={14} /> : <Unlock size={14} className="text-gray-400" />}
-      </button>
-
-      {/* Name */}
-      {isEditing ? (
-        <input
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          onBlur={handleNameSubmit}
-          onKeyDown={(e) => e.key === 'Enter' && handleNameSubmit()}
-          className="flex-1 px-1 border rounded text-sm"
-          autoFocus
-          onClick={(e) => e.stopPropagation()}
-        />
-      ) : (
-        <span
-          className="flex-1 text-sm truncate"
-          onDoubleClick={(e) => {
-            e.stopPropagation();
-            setIsEditing(true);
-          }}
-        >
-          {layer.name}
-        </span>
-      )}
-
-      {/* Delete */}
-      {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="p-1 hover:bg-gray-200 rounded ml-1 opacity-0 group-hover:opacity-100"
-        >
-          <Trash2 size={14} />
-        </button>
-      )}
-    </div>
-  );
-};
-```
+*Note: Layers Panel Component code is in Phase 10.*
 
 ### Shape-Level Connection Targeting
 
@@ -1579,21 +1225,9 @@ export function useGroupAwareSelection() {
 - Groups can be calculated/managed independently
 - Better for serialization
 
-### Decision 2: Layer Rendering Order
+*Note: Decision 2 (Layer Rendering Order) is defined in Phase 10.*
 
-**Options:**
-1. Render layers bottom-to-top in order, shapes within layer by z-index
-2. Global z-index ignoring layers
-3. Layers override individual z-index completely
-
-**Decision:** Layers take precedence, shapes within layer sorted by z-index
-
-**Rationale:**
-- Matches user expectation (layers are like Photoshop layers)
-- Allows fine-grained control within layers
-- Clear mental model
-
-### Decision 3: Orthogonal Routing Algorithm
+### Decision 2: Orthogonal Routing Algorithm
 
 **Options:**
 1. Simple L/Z-shape routing
@@ -1609,7 +1243,7 @@ export function useGroupAwareSelection() {
 - Full obstacle avoidance is complex and often produces unexpected results
 - Can be enhanced in future phases
 
-### Decision 4: Connection Style Storage
+### Decision 3: Connection Style Storage
 
 **Options:**
 1. Style per connection
@@ -1729,31 +1363,7 @@ describe('Groups', () => {
   });
 });
 
-// e2e/layers.spec.ts
-describe('Layers', () => {
-  it('should toggle layer visibility', () => {
-    createShapeOnLayer('shape1', 'layer1');
-
-    // Hide layer
-    cy.get('[data-layer-id="layer1"] [data-testid="visibility-toggle"]').click();
-    cy.get('[data-shape-id="shape1"]').should('not.be.visible');
-
-    // Show layer
-    cy.get('[data-layer-id="layer1"] [data-testid="visibility-toggle"]').click();
-    cy.get('[data-shape-id="shape1"]').should('be.visible');
-  });
-
-  it('should prevent selection on locked layer', () => {
-    createShapeOnLayer('shape1', 'layer1');
-
-    // Lock layer
-    cy.get('[data-layer-id="layer1"] [data-testid="lock-toggle"]').click();
-
-    // Try to select shape
-    cy.get('[data-shape-id="shape1"]').click();
-    cy.get('[data-shape-id="shape1"]').should('not.have.class', 'selected');
-  });
-});
+// Note: e2e/layers.spec.ts is in Phase 10
 
 // e2e/connections.spec.ts
 describe('Advanced Connections', () => {
@@ -1913,8 +1523,8 @@ interface Shape {
   type: ShapeType;
   x: number;
   y: number;
-  layerId: string;     // Required - default to first layer
   groupId?: string;    // Optional - undefined if not grouped
+  // layerId: string;  // Added in Phase 10
   // ...
 }
 ```
@@ -1951,20 +1561,6 @@ interface Connection {
 
 ```typescript
 function migrateToP8(data: DiagramData): DiagramData {
-  // Add default layer if not present
-  const defaultLayerId = data.layers?.[0]?.id || 'default';
-
-  // Migrate shapes
-  const shapes = Object.fromEntries(
-    Object.entries(data.shapes).map(([id, shape]) => [
-      id,
-      {
-        ...shape,
-        layerId: shape.layerId || defaultLayerId,
-      },
-    ])
-  );
-
   // Migrate connections
   const connections = Object.fromEntries(
     Object.entries(data.connections).map(([id, conn]) => [
@@ -1981,10 +1577,9 @@ function migrateToP8(data: DiagramData): DiagramData {
 
   return {
     ...data,
-    shapes,
     connections,
-    layers: data.layers || [{ id: defaultLayerId, name: 'Layer 1', visible: true, locked: false, opacity: 1, createdAt: Date.now() }],
     groups: data.groups || {},
+    // Note: layers migration is in Phase 10
   };
 }
 ```

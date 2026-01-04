@@ -13,17 +13,16 @@
 
 ## Phase Overview
 
-Phase 8 adds organizational features for complex diagrams and advanced connection capabilities. Users can group shapes together for easier manipulation, organize content into layers, and create sophisticated connections with curves, orthogonal routing, waypoints, and labels.
+Phase 8 adds organizational features for complex diagrams and advanced connection capabilities. Users can group shapes together for easier manipulation and create sophisticated connections with curves, orthogonal routing, waypoints, and labels. Layer management is deferred to Phase 10.
 
 ### Goals
 
 1. Implement shape grouping and ungrouping
 2. Enable editing shapes within groups
-3. Add layers panel with visibility and locking
-4. Support curved (Bezier) connections
-5. Support orthogonal (right-angle) connections
-6. Add connection labels and waypoints
-7. Enable disconnecting and reattaching connections
+3. Support curved (Bezier) connections
+4. Support orthogonal (right-angle) connections
+5. Add connection labels and waypoints
+6. Enable disconnecting and reattaching connections
 
 ---
 
@@ -36,11 +35,8 @@ Phase 8 adds organizational features for complex diagrams and advanced connectio
 | E07-US01 | Group Shapes | P1 | Full |
 | E07-US02 | Ungroup Shapes | P1 | Full |
 | E07-US03 | Edit Group Contents | P2 | Full |
-| E07-US04 | Create Layers | P2 | Full |
-| E07-US05 | Layer Visibility | P2 | Full |
-| E07-US06 | Lock Layer | P2 | Full |
-| E07-US07 | Reorder Layers | P2 | Full |
-| E07-US08 | Delete Layer | P2 | Full |
+
+*Note: E07-US04 through E07-US08 (Layer stories) are deferred to Phase 10.*
 
 ### From Epic E06: Connections (Advanced)
 
@@ -182,186 +178,6 @@ Scenario: Edit text within grouped shape
   Given I am in group edit mode
   When I double-click a shape with text
   Then text editing mode activates for that shape
-```
-
----
-
-### E07-US04: Create Layers
-
-**As a** user
-**I want** to organize my diagram into layers
-**So that** I can manage complex diagrams
-
-```gherkin
-Scenario: View layers panel
-  Given I select "View > Layers Panel" or press a shortcut
-  Then a layers panel opens
-  And I see a list of layers (default: "Layer 1")
-
-Scenario: Add new layer
-  Given I have the layers panel open
-  When I click "Add Layer" button
-  Then a new layer is created above the current layer
-  And the new layer is named "Layer 2" (auto-increment)
-  And the new layer becomes active
-
-Scenario: Rename layer
-  Given I have the layers panel open
-  When I double-click on a layer name
-  Then I can edit the name inline
-  When I press Enter or click outside
-  Then the name is saved
-
-Scenario: Move shapes to layer
-  Given I have multiple layers
-  And I have shapes selected
-  When I right-click and select "Move to Layer > [Layer Name]"
-  Then the shapes move to that layer
-  And they appear on the target layer
-
-Scenario: New shapes on active layer
-  Given I have multiple layers
-  And "Layer 2" is the active layer
-  When I create a new shape
-  Then the shape is added to "Layer 2"
-```
-
----
-
-### E07-US05: Layer Visibility
-
-**As a** user
-**I want** to show/hide layers
-**So that** I can focus on specific parts of the diagram
-
-```gherkin
-Scenario: Toggle layer visibility
-  Given I have the layers panel open
-  When I click the eye icon next to a layer
-  Then all shapes on that layer are hidden/shown
-  And the icon changes to indicate visibility state
-
-Scenario: Hidden shapes not selectable
-  Given a layer is hidden
-  Then shapes on that layer cannot be selected by clicking
-  And they are not included in selection box selections
-
-Scenario: Hidden shapes not rendered
-  Given a layer is hidden
-  Then shapes on that layer are not visible on canvas
-
-Scenario: Hide all but one layer
-  Given I want to focus on "Layer 1"
-  When I Alt-click the eye icon on "Layer 1"
-  Then all other layers are hidden
-  And only "Layer 1" is visible
-
-Scenario: Layer visibility persisted
-  Given I hide a layer
-  When I save and reload the diagram
-  Then the layer visibility state is preserved
-```
-
----
-
-### E07-US06: Lock Layer
-
-**As a** user
-**I want** to lock layers
-**So that** I don't accidentally modify background elements
-
-```gherkin
-Scenario: Lock layer
-  Given I have the layers panel open
-  When I click the lock icon next to a layer
-  Then all shapes on that layer become locked
-  And the lock icon shows as active
-
-Scenario: Locked shapes not selectable
-  Given a layer is locked
-  When I click on shapes on that layer
-  Then they cannot be selected
-  And they cannot be moved or modified
-
-Scenario: Locked shapes visible
-  Given a layer is locked
-  Then shapes on that layer are still visible
-  And they are dimmed or have a subtle indicator
-
-Scenario: Unlock layer
-  Given a layer is locked
-  When I click the lock icon again
-  Then the layer is unlocked
-  And shapes can be selected and modified
-
-Scenario: Cannot delete from locked layer
-  Given shapes are on a locked layer
-  Then attempting to delete them has no effect
-```
-
----
-
-### E07-US07: Reorder Layers
-
-**As a** user
-**I want** to reorder layers
-**So that** I can control which elements appear on top
-
-```gherkin
-Scenario: Drag to reorder layers
-  Given I have multiple layers
-  When I drag "Layer 1" above "Layer 2" in the layers panel
-  Then the layer order changes
-  And shapes on "Layer 1" now render above "Layer 2" shapes
-
-Scenario: Layer order affects rendering
-  Given I have overlapping shapes on different layers
-  Then shapes on higher layers appear above shapes on lower layers
-  And this overrides individual shape z-order
-
-Scenario: Move layer up/down with buttons
-  Given I have a layer selected in the panel
-  Then I can click up/down arrow buttons
-  And the layer moves one position in the order
-```
-
----
-
-### E07-US08: Delete Layer
-
-**As a** user
-**I want** to delete layers
-**So that** I can remove unused organization levels
-
-```gherkin
-Scenario: Delete empty layer
-  Given I have an empty layer (no shapes)
-  When I select it and click "Delete Layer"
-  Then the layer is removed without confirmation
-
-Scenario: Delete layer with shapes - move shapes
-  Given I have a layer with shapes
-  When I attempt to delete it
-  Then a confirmation dialog appears
-  And I can choose "Move shapes to [another layer]"
-  When I confirm
-  Then the shapes move and the layer is deleted
-
-Scenario: Delete layer with shapes - delete all
-  Given I have a layer with shapes
-  When I attempt to delete it
-  Then I can choose "Delete shapes too"
-  When I confirm
-  Then the shapes and layer are deleted
-
-Scenario: Cannot delete last layer
-  Given I have only one layer
-  Then the delete option is disabled
-  And I cannot delete the last layer
-
-Scenario: Delete layer from context menu
-  Given I right-click on a layer in the panel
-  Then I see "Delete Layer" option
 ```
 
 ---
@@ -667,44 +483,35 @@ Scenario: Works with all connection styles
    - Group selection behavior
    - Group edit mode (double-click)
 
-2. **Layers System**
-   - Layers panel
-   - Create/delete layers
-   - Rename layers
-   - Layer visibility toggle
-   - Layer locking
-   - Layer reordering
-   - Move shapes between layers
-
-3. **Curved Connections**
+2. **Curved Connections**
    - Bezier curve connections
    - Automatic control points
    - Manual control point adjustment
    - Smooth anchor exit/entry
 
-4. **Orthogonal Connections**
+3. **Orthogonal Connections**
    - Right-angle only segments
    - Automatic path routing
    - Path recalculation on move
 
-5. **Connection Labels**
+4. **Connection Labels**
    - Add labels to connections
    - Position labels along path
    - Style connection labels
    - Labels follow connection movement
 
-6. **Connection Waypoints**
+5. **Connection Waypoints**
    - Add waypoints to control path
    - Move waypoints
    - Remove waypoints
    - Multiple waypoints per connection
 
-7. **Disconnect/Reconnect**
+6. **Disconnect/Reconnect**
    - Drag to disconnect endpoints
    - Reattach to different anchors
    - Visual feedback for floating endpoints
 
-8. **Shape-Level Connection Targeting**
+7. **Shape-Level Connection Targeting**
    - Connect to shapes without precise anchor clicking
    - Auto-select best anchor based on approach direction
    - Shape highlight on hover during connection drag
@@ -736,12 +543,14 @@ Scenario: Works with all connection styles
 
 | Component/File | Usage |
 |----------------|-------|
-| `Shape` type | Extended with `groupId`, `layerId` |
+| `Shape` type | Extended with `groupId` |
 | `Connection` type | Extended with waypoints, label, style |
-| `useDiagramStore` | Group and layer management |
-| History system | Track group/layer operations |
+| `useDiagramStore` | Group management |
+| History system | Track group operations |
 | Property panel | Connection style options |
 | Context menu | Group/ungroup options |
+
+*Note: `layerId` field added to Shape type in Phase 10.*
 
 ---
 
@@ -755,15 +564,6 @@ Scenario: Works with all connection styles
 - [ ] Double-click enters group edit mode
 - [ ] Click outside or Escape exits group edit
 - [ ] Nested groups supported
-
-### Layers
-- [ ] Layers panel shows all layers
-- [ ] Can add/delete/rename layers
-- [ ] Layer visibility toggles correctly
-- [ ] Layer locking prevents modification
-- [ ] Layers can be reordered
-- [ ] Shapes render in layer order
-- [ ] New shapes go to active layer
 
 ### Curved Connections
 - [ ] Can create curved (Bezier) connections
@@ -823,38 +623,25 @@ Scenario: Works with all connection styles
    - Create group A, create group B, group both
    - Verify nested structure works
 
-### Layers Tests
-
-5. **Layer Visibility**
-   - Hide layer, verify shapes disappear
-   - Show layer, verify shapes return
-
-6. **Layer Locking**
-   - Lock layer, try to select shape
-   - Verify shape not selectable
-
-7. **Layer Order**
-   - Shapes on higher layer render above
-
 ### Connection Tests
 
-8. **Curved Connection**
+5. **Curved Connection**
    - Create curved connection
    - Drag control point, verify curve changes
 
-9. **Orthogonal Connection**
+6. **Orthogonal Connection**
    - Create orthogonal connection
    - Move shape, verify path recalculates
 
-10. **Add Connection Label**
+7. **Add Connection Label**
     - Double-click connection
     - Type label, verify displays
 
-11. **Add Waypoint**
+8. **Add Waypoint**
     - Select connection, double-click line
     - Verify waypoint added, drag it
 
-12. **Shape-Level Targeting**
+9. **Shape-Level Targeting**
     - Create connection by dropping on shape body
     - Verify best anchor auto-selected
     - Verify shape highlights during hover
@@ -867,7 +654,6 @@ Scenario: Works with all connection styles
 |--------|--------|
 | Group 50 shapes | < 100ms |
 | Ungroup operation | < 50ms |
-| Layer toggle | < 16ms |
 | Curve calculation | < 5ms |
 | Orthogonal routing | < 10ms |
 | Waypoint update | < 5ms |
@@ -900,23 +686,7 @@ interface GroupShape extends Shape {
 }
 ```
 
-### Layer Structure
-
-```typescript
-interface Layer {
-  id: string;
-  name: string;
-  visible: boolean;
-  locked: boolean;
-  order: number; // Z-order among layers
-}
-
-interface Shape {
-  id: string;
-  layerId: string;
-  // ...
-}
-```
+*Note: Layer Structure is defined in Phase 10.*
 
 ### Bezier Curve Calculation
 
