@@ -5,6 +5,7 @@ import { getConnectionEndpoints } from '@/lib/geometry/connection';
 import { getAbsoluteControlPoints } from '@/lib/geometry/bezier';
 import { COLORS, CONNECTION_DEFAULTS } from '@/lib/constants';
 import { CurvedConnection } from './CurvedConnection';
+import { OrthogonalConnection } from './OrthogonalConnection';
 import { ConnectionControlPoints } from './ConnectionControlPoints';
 import { useControlPointDrag } from '@/hooks/useControlPointDrag';
 
@@ -46,8 +47,9 @@ export const Connection = memo(function Connection({
   const { start, end } = endpoints;
   const { id, stroke, strokeWidth, sourceArrow, targetArrow, curveType, sourceAnchor, targetAnchor } = connection;
 
-  // Determine if this is a curved connection
+  // Determine connection type
   const isCurved = curveType === 'bezier';
+  const isOrthogonal = curveType === 'orthogonal';
 
   // Calculate control points for curved connections using utility
   // Note: connection.controlPoints stores RELATIVE OFFSETS from endpoints
@@ -152,13 +154,30 @@ export const Connection = memo(function Connection({
         )}
       </defs>
 
-      {/* Render curved or straight connection */}
+      {/* Render connection based on curve type */}
       {isCurved ? (
         <CurvedConnection
           startPoint={start}
           endPoint={end}
           cp1={cp1}
           cp2={cp2}
+          lineColor={lineColor}
+          lineWidth={lineWidth}
+          strokeStyle={connection.strokeStyle}
+          sourceArrow={sourceArrow}
+          targetArrow={targetArrow}
+          startMarkerId={startMarkerId}
+          endMarkerId={endMarkerId}
+          onMouseDown={onMouseDown}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        />
+      ) : isOrthogonal ? (
+        <OrthogonalConnection
+          startPoint={start}
+          endPoint={end}
+          startAnchor={sourceAnchor}
+          endAnchor={targetAnchor || 'left'}
           lineColor={lineColor}
           lineWidth={lineWidth}
           strokeStyle={connection.strokeStyle}

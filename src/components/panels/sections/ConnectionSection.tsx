@@ -24,7 +24,7 @@ const ARROW_OPTIONS: { value: ArrowType; label: string }[] = [
 const CURVE_TYPE_OPTIONS: { value: CurveType; label: string }[] = [
   { value: 'straight', label: 'Straight' },
   { value: 'bezier', label: 'Curved' },
-  // { value: 'orthogonal', label: 'Orthogonal' }, // Phase 8.4
+  { value: 'orthogonal', label: 'Orthogonal' },
 ];
 
 export function ConnectionSection({

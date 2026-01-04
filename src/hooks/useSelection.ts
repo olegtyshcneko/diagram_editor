@@ -6,6 +6,7 @@ import { findShapeAtPoint } from '@/lib/geometry/hitTest';
 import { screenToCanvas } from '@/lib/geometry/viewport';
 import { getConnectionEndpoints, isPointNearLine } from '@/lib/geometry/connection';
 import { getAbsoluteControlPoints, isPointNearBezier } from '@/lib/geometry/bezier';
+import { calculateOrthogonalPath, isPointNearOrthogonalPath } from '@/lib/geometry/orthogonal';
 import type { Point, Size } from '@/types/common';
 
 interface UseSelectionProps {
@@ -54,6 +55,19 @@ export function useSelection({ containerSize }: UseSelectionProps) {
           isNearConnection = isPointNearBezier(
             canvasPoint,
             { start: endpoints.start, cp1, cp2, end: endpoints.end },
+            threshold
+          );
+        } else if (connection.curveType === 'orthogonal') {
+          // For orthogonal connections, calculate path and test each segment
+          const pathPoints = calculateOrthogonalPath(
+            endpoints.start,
+            connection.sourceAnchor,
+            endpoints.end,
+            connection.targetAnchor || 'left'
+          );
+          isNearConnection = isPointNearOrthogonalPath(
+            canvasPoint,
+            pathPoints,
             threshold
           );
         } else {

@@ -25,7 +25,7 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P8.1 | Groups | **Completed** | [requirements_p8.1.md](./requirements_p8.1.md) | [spec_p8.1.md](./spec_p8.1.md) | [todo_p8.1.md](./todo_p8.1.md) |
 | P8.1.1 | Group Resize & Rotation | **Completed** | [requirements_p8.1.1.md](./requirements_p8.1.1.md) | [spec_p8.1.1.md](./spec_p8.1.1.md) | [todo_p8.1.1.md](./todo_p8.1.1.md) |
 | P8.3 | Curved Connections | **Completed** | [requirements_p8.3.md](./requirements_p8.3.md) | [spec_p8.3.md](./spec_p8.3.md) | [todo_p8.3.md](./todo_p8.3.md) |
-| P8.4 | Orthogonal Connections | Not Started | [requirements_p8.4.md](./requirements_p8.4.md) | [spec_p8.4.md](./spec_p8.4.md) | - |
+| P8.4 | Orthogonal Connections | **Completed** | [requirements_p8.4.md](./requirements_p8.4.md) | [spec_p8.4.md](./spec_p8.4.md) | [todo_p8.4.md](./todo_p8.4.md) |
 | P8.5 | Labels & Waypoints | Not Started | [requirements_p8.5.md](./requirements_p8.5.md) | [spec_p8.5.md](./spec_p8.5.md) | - |
 | P8.6 | Disconnect & Targeting | Not Started | [requirements_p8.6.md](./requirements_p8.6.md) | [spec_p8.6.md](./spec_p8.6.md) | - |
 | P9 | File Operations | Not Started | [requirements_p9.md](./requirements_p9.md) | [spec_p9.md](./spec_p9.md) | - |
@@ -249,3 +249,18 @@ Layers panel, create/delete/rename layers, visibility toggle, layer locking, reo
 - Fixed selection deselection bug: Added isControlPointDragging flag to prevent canvas interference
 - Known issues added: KI-008 (no multi-selection for connections), KI-009 (start arrows partially hidden)
 - 5 new files created, 8 files modified
+
+### P8.4 - Completed
+- Orthogonal (right-angle) connections: Only horizontal and vertical segments
+- Connection style dropdown: Added "Orthogonal" option in Property Panel
+- Smart position-aware routing algorithm:
+  - L-shape: Perpendicular anchors (e.g., right→top) - one turn
+  - Z-shape: Opposite anchors facing each other (e.g., right→left when target is to right)
+  - U-shape: Same-direction anchors OR opposite anchors facing away
+- Strategy dynamically recalculates when shapes move (not just path points)
+- 20px exit offset perpendicular from anchor before turning
+- Path simplification: Removes redundant collinear points
+- Orthogonal hit testing: `isPointNearOrthogonalPath()` tests each segment
+- Arrow markers display correctly at endpoints
+- Miter joins for sharp 90° corners
+- 2 new files created, 3 files modified

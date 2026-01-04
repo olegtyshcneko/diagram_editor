@@ -26,24 +26,24 @@ Zoom to 100% for optimal handle usability, or use property panel for precise adj
 ---
 
 ### KI-004: Connection Lines Cut Through Shapes
-**Status:** Open (Addressed in Phase 8)
-**Priority:** Medium
+**Status:** Partially Resolved (Phase 8.3, 8.4)
+**Priority:** Low
 **Reported:** Phase 5
 
 **Description:**
 Straight-line connections between shapes may pass through other shapes on the canvas. When shapes overlap or are inline, the connection line can cut through intermediate shapes.
 
-**Expected Behavior:**
-Connections should route around obstacles or provide orthogonal/curved routing options.
+**Resolution (Partial):**
+Phase 8 introduced alternative connection styles:
+- ✅ Curved (Bezier) connections (P8.3)
+- ✅ Orthogonal connections with smart routing (P8.4)
+- ⏳ Waypoints for manual path control (P8.5)
 
-**Resolution Plan:**
-Phase 8 will introduce:
-- Orthogonal connections (right-angle routing)
-- Curved (Bezier) connections
-- Waypoints for manual path control
+**Remaining:**
+Automatic obstacle avoidance (A* pathfinding) is not implemented. Users must manually choose connection style or reposition shapes.
 
 **Workaround:**
-Manually reposition shapes to avoid overlapping connections, or wait for Phase 8 advanced connections.
+Switch connection style to "Orthogonal" or "Curved" in the Property Panel, or reposition shapes.
 
 ---
 
