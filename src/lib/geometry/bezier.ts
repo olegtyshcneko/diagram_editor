@@ -179,3 +179,97 @@ export function getTangentAngle(curve: BezierCurve, t: number): number {
 
   return Math.atan2(dy, dx);
 }
+
+/**
+ * Calculate appropriate control point distance based on points.
+ */
+function getControlDistance(p1: Point, p2: Point): number {
+  const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  return Math.min(distance * 0.4, 100);
+}
+
+/**
+ * Generate SVG path for a smooth curve through multiple points (including waypoints).
+ * Uses Catmull-Rom to Bezier conversion for smooth curves through waypoints.
+ *
+ * @param start - Start point
+ * @param startAnchor - Start anchor position
+ * @param end - End point
+ * @param endAnchor - End anchor position
+ * @param waypoints - Array of waypoint positions
+ * @returns SVG path string
+ */
+export function bezierWithWaypoints(
+  start: Point,
+  startAnchor: AnchorPosition,
+  end: Point,
+  endAnchor: AnchorPosition,
+  waypoints: Point[]
+): string {
+  if (waypoints.length === 0) {
+    // No waypoints - use standard bezier
+    const { cp1, cp2 } = calculateAutoControlPoints(start, startAnchor, end, endAnchor);
+    return bezierToSVGPath({ start, cp1, cp2, end });
+  }
+
+  // Build array of all points
+  const allPoints = [start, ...waypoints, end];
+
+  // For a single waypoint, create two bezier segments
+  if (waypoints.length === 1) {
+    const mid = waypoints[0];
+
+    // First segment: start -> waypoint
+    const cp1_1 = getAnchorOffset(start, startAnchor, getControlDistance(start, mid));
+    const cp2_1 = {
+      x: mid.x - (mid.x - start.x) * 0.3,
+      y: mid.y - (mid.y - start.y) * 0.3,
+    };
+
+    // Second segment: waypoint -> end
+    const cp1_2 = {
+      x: mid.x + (end.x - mid.x) * 0.3,
+      y: mid.y + (end.y - mid.y) * 0.3,
+    };
+    const cp2_2 = getAnchorOffset(end, endAnchor, getControlDistance(mid, end));
+
+    return `M ${start.x} ${start.y} C ${cp1_1.x} ${cp1_1.y}, ${cp2_1.x} ${cp2_1.y}, ${mid.x} ${mid.y} C ${cp1_2.x} ${cp1_2.y}, ${cp2_2.x} ${cp2_2.y}, ${end.x} ${end.y}`;
+  }
+
+  // Multiple waypoints - use smooth curve through all points
+  let path = `M ${allPoints[0].x} ${allPoints[0].y}`;
+
+  for (let i = 0; i < allPoints.length - 1; i++) {
+    const p0 = i > 0 ? allPoints[i - 1] : allPoints[0];
+    const p1 = allPoints[i];
+    const p2 = allPoints[i + 1];
+    const p3 = i < allPoints.length - 2 ? allPoints[i + 2] : allPoints[allPoints.length - 1];
+
+    // Calculate control points using Catmull-Rom to Bezier conversion
+    const tension = 0.3;
+    const cp1 = {
+      x: p1.x + (p2.x - p0.x) * tension,
+      y: p1.y + (p2.y - p0.y) * tension,
+    };
+    const cp2 = {
+      x: p2.x - (p3.x - p1.x) * tension,
+      y: p2.y - (p3.y - p1.y) * tension,
+    };
+
+    // Override control points for first and last segments with anchor-based controls
+    if (i === 0) {
+      const offset = getAnchorOffset(p1, startAnchor, getControlDistance(p1, p2) * 0.5);
+      cp1.x = offset.x;
+      cp1.y = offset.y;
+    }
+    if (i === allPoints.length - 2) {
+      const offset = getAnchorOffset(p2, endAnchor, getControlDistance(p1, p2) * 0.5);
+      cp2.x = offset.x;
+      cp2.y = offset.y;
+    }
+
+    path += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${p2.x} ${p2.y}`;
+  }
+
+  return path;
+}

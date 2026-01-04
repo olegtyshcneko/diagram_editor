@@ -4,6 +4,7 @@ import type { ArrowType, AnchorPosition } from '@/types/connections';
 import type { StrokeStyle } from '@/types/shapes';
 import {
   calculateOrthogonalPath,
+  calculateOrthogonalPathWithWaypoints,
   orthogonalToSVGPath,
 } from '@/lib/geometry/orthogonal';
 import { CONNECTION_DEFAULTS } from '@/lib/constants';
@@ -13,6 +14,7 @@ interface OrthogonalConnectionProps {
   endPoint: Point;
   startAnchor: AnchorPosition;
   endAnchor: AnchorPosition;
+  waypointPositions?: Point[];
   lineColor: string;
   lineWidth: number;
   strokeStyle: StrokeStyle;
@@ -23,6 +25,7 @@ interface OrthogonalConnectionProps {
   onMouseDown: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
 }
 
 export const OrthogonalConnection = memo(function OrthogonalConnection({
@@ -30,6 +33,7 @@ export const OrthogonalConnection = memo(function OrthogonalConnection({
   endPoint,
   startAnchor,
   endAnchor,
+  waypointPositions,
   lineColor,
   lineWidth,
   strokeStyle,
@@ -40,17 +44,26 @@ export const OrthogonalConnection = memo(function OrthogonalConnection({
   onMouseDown,
   onMouseEnter,
   onMouseLeave,
+  onDoubleClick,
 }: OrthogonalConnectionProps) {
   // Calculate orthogonal path based on anchor positions
   const pathData = useMemo(() => {
-    const points = calculateOrthogonalPath(
-      startPoint,
-      startAnchor,
-      endPoint,
-      endAnchor
-    );
+    const points = waypointPositions && waypointPositions.length > 0
+      ? calculateOrthogonalPathWithWaypoints(
+          startPoint,
+          startAnchor,
+          endPoint,
+          endAnchor,
+          waypointPositions
+        )
+      : calculateOrthogonalPath(
+          startPoint,
+          startAnchor,
+          endPoint,
+          endAnchor
+        );
     return orthogonalToSVGPath(points);
-  }, [startPoint, startAnchor, endPoint, endAnchor]);
+  }, [startPoint, startAnchor, endPoint, endAnchor, waypointPositions]);
 
   // Get stroke dasharray based on stroke style
   const strokeDasharray = useMemo(() => {
@@ -79,6 +92,7 @@ export const OrthogonalConnection = memo(function OrthogonalConnection({
         onMouseDown={onMouseDown}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        onDoubleClick={onDoubleClick}
       />
 
       {/* Visible orthogonal path */}

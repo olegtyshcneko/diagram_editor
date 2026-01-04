@@ -1,7 +1,12 @@
 import { useDiagramStore } from '@/stores/diagramStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { EMPTY_SHAPE_DELTA } from '@/types/history';
 import { Label } from '@/components/ui/label';
 import { ColorPicker } from '@/components/ui/ColorPicker';
 import { NumberInput } from '@/components/ui/NumberInput';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -9,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { ArrowType, Connection, CurveType } from '@/types/connections';
+import type { ArrowType, Connection, CurveType, ConnectionLabelStyle } from '@/types/connections';
+import { DEFAULT_LABEL_STYLE } from '@/types/connections';
 
 interface ConnectionSectionProps {
   selectedConnectionIds: string[];
@@ -32,15 +38,82 @@ export function ConnectionSection({
 }: ConnectionSectionProps) {
   const connections = useDiagramStore((s) => s.connections);
   const updateConnection = useDiagramStore((s) => s.updateConnection);
+  const pushEntry = useHistoryStore((s) => s.pushEntry);
 
   // Get properties from first selected connection
   const firstConnection = connections[selectedConnectionIds[0]];
   if (!firstConnection) return null;
 
+  const labelStyle = { ...DEFAULT_LABEL_STYLE, ...firstConnection.labelStyle };
+
   const handleConnectionChange = (updates: Partial<Connection>) => {
     selectedConnectionIds.forEach((id) => {
       updateConnection(id, updates);
     });
+  };
+
+  const handleLabelStyleChange = (styleUpdates: Partial<ConnectionLabelStyle>) => {
+    const newStyle = { ...labelStyle, ...styleUpdates };
+    selectedConnectionIds.forEach((id) => {
+      updateConnection(id, { labelStyle: newStyle });
+    });
+  };
+
+  const handleClearLabel = () => {
+    const beforeLabel = firstConnection.label;
+    selectedConnectionIds.forEach((id) => {
+      updateConnection(id, { label: undefined, labelPosition: undefined });
+    });
+
+    if (beforeLabel) {
+      pushEntry({
+        type: 'REMOVE_LABEL',
+        description: 'Remove Label',
+        shapeDelta: EMPTY_SHAPE_DELTA,
+        connectionDelta: {
+          added: [],
+          removed: [],
+          modified: selectedConnectionIds.map((id) => ({
+            id,
+            before: { label: connections[id]?.label, labelPosition: connections[id]?.labelPosition },
+            after: { label: undefined, labelPosition: undefined },
+          })),
+        },
+        selectionBefore: [],
+        selectionAfter: [],
+      });
+    }
+  };
+
+  const handleClearWaypoints = () => {
+    const waypointsBefore = selectedConnectionIds.map((id) => ({
+      id,
+      waypoints: connections[id]?.waypoints || [],
+    }));
+
+    selectedConnectionIds.forEach((id) => {
+      updateConnection(id, { waypoints: [] });
+    });
+
+    const hasWaypoints = waypointsBefore.some((w) => w.waypoints.length > 0);
+    if (hasWaypoints) {
+      pushEntry({
+        type: 'REMOVE_WAYPOINT',
+        description: 'Clear Waypoints',
+        shapeDelta: EMPTY_SHAPE_DELTA,
+        connectionDelta: {
+          added: [],
+          removed: [],
+          modified: waypointsBefore.map(({ id, waypoints }) => ({
+            id,
+            before: { waypoints },
+            after: { waypoints: [] },
+          })),
+        },
+        selectionBefore: [],
+        selectionAfter: [],
+      });
+    }
   };
 
   return (
@@ -84,6 +157,7 @@ export function ConnectionSection({
               controlPoints: value === 'straight' ? undefined : firstConnection.controlPoints,
             })
           }
+          disabled={firstConnection.waypoints.length > 0}
         >
           <SelectTrigger className="flex-1 h-8 text-xs">
             <SelectValue />
@@ -141,6 +215,104 @@ export function ConnectionSection({
           </SelectContent>
         </Select>
       </div>
+
+      {/* Separator */}
+      <div className="border-t my-2" />
+
+      {/* Label Section */}
+      <Label className="text-xs text-muted-foreground">Label</Label>
+
+      {/* Label Text */}
+      <div className="flex items-center gap-2">
+        <Label className="w-16 text-xs shrink-0">Text</Label>
+        <Input
+          value={firstConnection.label || ''}
+          onChange={(e) => handleConnectionChange({ label: e.target.value || undefined })}
+          placeholder="No label"
+          className="flex-1 h-8 text-xs"
+        />
+      </div>
+
+      {firstConnection.label && (
+        <>
+          {/* Label Position */}
+          <div className="flex items-center gap-2">
+            <Label className="w-16 text-xs shrink-0">Position</Label>
+            <div className="flex-1 flex items-center gap-2">
+              <Slider
+                value={[(firstConnection.labelPosition ?? 0.5) * 100]}
+                onValueChange={([value]) => handleConnectionChange({ labelPosition: value / 100 })}
+                min={5}
+                max={95}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-xs text-muted-foreground w-8">
+                {Math.round((firstConnection.labelPosition ?? 0.5) * 100)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Label Font Size */}
+          <div className="flex items-center gap-2">
+            <Label className="w-16 text-xs shrink-0">Font Size</Label>
+            <NumberInput
+              value={labelStyle.fontSize}
+              onChange={(value) => handleLabelStyleChange({ fontSize: value })}
+              min={8}
+              max={32}
+              className="w-20 h-8"
+              suffix="px"
+            />
+          </div>
+
+          {/* Label Color */}
+          <div className="flex items-center gap-2">
+            <Label className="w-16 text-xs shrink-0">Color</Label>
+            <ColorPicker
+              value={labelStyle.color}
+              onChange={(color) => handleLabelStyleChange({ color })}
+            />
+            <span className="text-xs text-muted-foreground">{labelStyle.color}</span>
+          </div>
+
+          {/* Clear Label Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearLabel}
+            className="w-full h-7 text-xs"
+          >
+            Clear Label
+          </Button>
+        </>
+      )}
+
+      {/* Separator */}
+      <div className="border-t my-2" />
+
+      {/* Waypoints Section - only for straight connections */}
+      {firstConnection.curveType === 'straight' && (
+        <>
+          <Label className="text-xs text-muted-foreground">Waypoints</Label>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs flex-1">
+              {firstConnection.waypoints.length} waypoint{firstConnection.waypoints.length !== 1 ? 's' : ''}
+            </span>
+            {firstConnection.waypoints.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearWaypoints}
+                className="h-7 text-xs"
+              >
+                Clear All
+              </Button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

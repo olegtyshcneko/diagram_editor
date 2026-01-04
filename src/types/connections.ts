@@ -3,6 +3,40 @@ import type { Point } from './common';
 // Anchor positions on shapes
 export type AnchorPosition = 'top' | 'right' | 'bottom' | 'left';
 
+// Connection label styling
+export interface ConnectionLabelStyle {
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+}
+
+export const DEFAULT_LABEL_STYLE: ConnectionLabelStyle = {
+  fontFamily: 'Inter, system-ui, sans-serif',
+  fontSize: 12,
+  color: '#000000',
+};
+
+/**
+ * Waypoint for connection routing.
+ *
+ * IMPORTANT: Waypoints are stored as RELATIVE positions, not absolute.
+ * This ensures waypoints move correctly when connected shapes are moved.
+ *
+ * - `t` is the position along the baseline (0-1) from start to end
+ * - `offset` is the perpendicular/deviation offset from that baseline point
+ *
+ * To get absolute position:
+ *   baselinePoint = start + t * (end - start)
+ *   absolutePosition = baselinePoint + offset
+ */
+export interface Waypoint {
+  id: string;
+  /** Position along baseline from start (0) to end (1) */
+  t: number;
+  /** Offset from the baseline point at t */
+  offset: Point;
+}
+
 // Arrow marker types
 export type ArrowType =
   | 'none'
@@ -40,8 +74,8 @@ export interface Connection {
   targetAnchor: AnchorPosition | null;
   targetPoint?: Point;
 
-  // Waypoints for custom routing
-  waypoints: Point[];
+  // Waypoints for custom routing (with IDs for stable drag operations)
+  waypoints: Waypoint[];
 
   // Styling
   stroke: string;
@@ -59,7 +93,8 @@ export interface Connection {
 
   // Label
   label?: string;
-  labelPosition?: number; // 0-1 along path
+  labelPosition?: number; // 0-1 along path (0.5 = midpoint)
+  labelStyle?: ConnectionLabelStyle;
 }
 
 // Connection creation state (during drag)

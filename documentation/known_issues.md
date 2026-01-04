@@ -75,6 +75,34 @@ Use "middle" vertical alignment for ellipses, or use smaller font sizes to keep 
 
 ---
 
+### KI-012: Waypoints Only Work for Straight Connections
+**Status:** Open
+**Priority:** Medium
+**Reported:** Phase 8.5
+
+**Description:**
+Waypoints (manual path control points) are currently only supported for straight connection style. Curved (bezier) and orthogonal connections do not support waypoints. The style selector is disabled when waypoints exist, forcing users to clear waypoints before changing connection style.
+
+**Current Behavior:**
+- Double-clicking on curved/orthogonal connections does not add waypoints
+- Waypoints panel section hidden for non-straight connections
+- Style selector disabled when waypoints exist on a straight connection
+
+**Expected Behavior:**
+Waypoints should work across all connection types:
+- **Bezier:** Waypoints could act as through-points that the curve passes through or near
+- **Orthogonal:** Waypoints could define mandatory routing points for the orthogonal path
+
+**Technical Considerations:**
+- Bezier with waypoints: Could use Catmull-Rom splines or multi-segment beziers
+- Orthogonal with waypoints: Already partially implemented in `routeOrthogonalWithWaypoints()` but disabled
+- Waypoint storage uses relative positioning (t + offset from baseline), which may need adaptation for non-linear paths
+
+**Workaround:**
+Use straight connections when waypoints are needed, or use bezier control points for curved path adjustment.
+
+---
+
 ### KI-009: Start Arrows Partially Hidden Under Shapes
 **Status:** Open
 **Priority:** Medium

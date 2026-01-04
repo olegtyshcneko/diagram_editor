@@ -20,11 +20,20 @@ interface InteractionState {
   // Control point dragging state (for curved connections)
   isControlPointDragging: boolean;
 
+  // Waypoint dragging state
+  isWaypointDragging: boolean;
+
+  // Label dragging state
+  isLabelDragging: boolean;
+
   // Cursor position for status bar
   cursorCanvasPosition: Point;
 
   // Text editing state
   editingTextShapeId: string | null;
+
+  // Connection label editing state
+  editingLabelConnectionId: string | null;
 
   // Connection creation state
   connectionCreationState: ConnectionCreationState | null;
@@ -48,8 +57,21 @@ interface InteractionState {
   // Control point drag actions
   setControlPointDragging: (isDragging: boolean) => void;
 
+  // Waypoint drag actions
+  setWaypointDragging: (isDragging: boolean) => void;
+
+  // Label drag actions
+  setLabelDragging: (isDragging: boolean) => void;
+
+  // Connection click tracking (prevents canvas click handler from clearing selection)
+  pendingConnectionInteraction: boolean;
+  setPendingConnectionInteraction: (pending: boolean) => void;
+
   // Text editing actions
   setEditingTextShapeId: (id: string | null) => void;
+
+  // Connection label editing actions
+  setEditingLabelConnectionId: (id: string | null) => void;
 
   // Connection creation actions
   startConnectionCreation: (
@@ -76,9 +98,17 @@ export const useInteractionStore = create<InteractionState>()((set) => ({
 
   isControlPointDragging: false,
 
+  isWaypointDragging: false,
+
+  isLabelDragging: false,
+
+  pendingConnectionInteraction: false,
+
   cursorCanvasPosition: { x: 0, y: 0 },
 
   editingTextShapeId: null,
+
+  editingLabelConnectionId: null,
 
   connectionCreationState: null,
 
@@ -117,8 +147,20 @@ export const useInteractionStore = create<InteractionState>()((set) => ({
   // Control point drag actions
   setControlPointDragging: (isDragging) => set({ isControlPointDragging: isDragging }),
 
+  // Waypoint drag actions
+  setWaypointDragging: (isDragging) => set({ isWaypointDragging: isDragging }),
+
+  // Label drag actions
+  setLabelDragging: (isDragging) => set({ isLabelDragging: isDragging }),
+
+  // Connection interaction tracking
+  setPendingConnectionInteraction: (pending) => set({ pendingConnectionInteraction: pending }),
+
   // Text editing actions
   setEditingTextShapeId: (id) => set({ editingTextShapeId: id }),
+
+  // Connection label editing actions
+  setEditingLabelConnectionId: (id) => set({ editingLabelConnectionId: id }),
 
   // Connection creation actions
   startConnectionCreation: (sourceShapeId, sourceAnchor, sourcePoint) =>

@@ -278,3 +278,77 @@ function isPointNearLineSegment(
 
   return distance <= threshold;
 }
+
+/**
+ * Calculate orthogonal path that passes through waypoints
+ *
+ * @param start - Start point
+ * @param startAnchor - Start anchor position
+ * @param end - End point
+ * @param endAnchor - End anchor position
+ * @param waypoints - Array of waypoint positions to pass through
+ * @returns Array of points forming the orthogonal path
+ */
+export function calculateOrthogonalPathWithWaypoints(
+  start: Point,
+  startAnchor: AnchorPosition,
+  end: Point,
+  endAnchor: AnchorPosition,
+  waypoints: Point[]
+): Point[] {
+  if (waypoints.length === 0) {
+    return calculateOrthogonalPath(start, startAnchor, end, endAnchor);
+  }
+
+  // Build array of all checkpoints
+  const allCheckpoints = [start, ...waypoints, end];
+  const result: Point[] = [start];
+
+  for (let i = 0; i < allCheckpoints.length - 1; i++) {
+    const from = allCheckpoints[i];
+    const to = allCheckpoints[i + 1];
+
+    // Determine anchors for this segment
+    const fromAnchor = i === 0 ? startAnchor : inferBestExitAnchor(from, to);
+    const toAnchor =
+      i === allCheckpoints.length - 2 ? endAnchor : inferBestEntryAnchor(from, to);
+
+    // Get path for this segment
+    const segmentPath = calculateOrthogonalPath(from, fromAnchor, to, toAnchor);
+
+    // Add points (skip first to avoid duplication)
+    for (let j = 1; j < segmentPath.length; j++) {
+      result.push(segmentPath[j]);
+    }
+  }
+
+  return simplifyPath(result);
+}
+
+/**
+ * Infer best exit anchor based on relative position of target
+ */
+function inferBestExitAnchor(from: Point, to: Point): AnchorPosition {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0 ? 'right' : 'left';
+  } else {
+    return dy > 0 ? 'bottom' : 'top';
+  }
+}
+
+/**
+ * Infer best entry anchor based on relative position of source
+ */
+function inferBestEntryAnchor(from: Point, to: Point): AnchorPosition {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0 ? 'left' : 'right';
+  } else {
+    return dy > 0 ? 'top' : 'bottom';
+  }
+}

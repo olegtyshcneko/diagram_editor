@@ -1,13 +1,19 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useCallback } from 'react';
+import type { Point } from '@/types/common';
 import type { Connection as ConnectionType } from '@/types/connections';
 import type { Shape } from '@/types/shapes';
 import { getConnectionEndpoints } from '@/lib/geometry/connection';
 import { getAbsoluteControlPoints } from '@/lib/geometry/bezier';
+import { waypointsToAbsolute, getPointOnPath } from '@/lib/geometry/pathUtils';
 import { COLORS, CONNECTION_DEFAULTS } from '@/lib/constants';
 import { CurvedConnection } from './CurvedConnection';
 import { OrthogonalConnection } from './OrthogonalConnection';
 import { ConnectionControlPoints } from './ConnectionControlPoints';
+import { ConnectionLabel } from './ConnectionLabel';
+import { ConnectionWaypoints } from './ConnectionWaypoints';
 import { useControlPointDrag } from '@/hooks/useControlPointDrag';
+import { useLabelDrag } from '@/hooks/useLabelDrag';
+import { useWaypointDrag } from '@/hooks/useWaypointDrag';
 
 interface ConnectionProps {
   connection: ConnectionType;
@@ -17,10 +23,25 @@ interface ConnectionProps {
   onMouseDown: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
+  onLabelDoubleClick?: () => void;
+  onWaypointDoubleClick?: (waypointId: string) => void;
 }
 
 const ARROW_SIZE = CONNECTION_DEFAULTS.ARROW_SIZE;
 const MIN_HIT_AREA_WIDTH = CONNECTION_DEFAULTS.MIN_HIT_AREA_WIDTH;
+
+/**
+ * Generate SVG path for straight connection with waypoints
+ */
+function straightPathWithWaypoints(start: Point, end: Point, waypointPositions: Point[]): string {
+  const allPoints = [start, ...waypointPositions, end];
+  let path = `M ${allPoints[0].x} ${allPoints[0].y}`;
+  for (let i = 1; i < allPoints.length; i++) {
+    path += ` L ${allPoints[i].x} ${allPoints[i].y}`;
+  }
+  return path;
+}
 
 export const Connection = memo(function Connection({
   connection,
@@ -30,6 +51,9 @@ export const Connection = memo(function Connection({
   onMouseDown,
   onMouseEnter,
   onMouseLeave,
+  onDoubleClick,
+  onLabelDoubleClick,
+  onWaypointDoubleClick,
 }: ConnectionProps) {
   // Only depend on the specific shapes this connection uses, not the entire shapes object
   const sourceShape = shapes[connection.sourceShapeId];
@@ -69,6 +93,34 @@ export const Connection = memo(function Connection({
     );
   }, [isCurved, start, end, sourceAnchor, targetAnchor, connection.controlPoints]);
 
+  // Convert relative waypoints to absolute positions
+  // This ensures waypoints move correctly when connected shapes are moved
+  const waypointPositions = useMemo(() =>
+    waypointsToAbsolute(connection.waypoints, start, end),
+    [connection.waypoints, start, end]
+  );
+
+  // Enriched waypoints with IDs and positions for rendering handles
+  const waypointHandles = useMemo(() =>
+    connection.waypoints.map((wp, i) => ({
+      id: wp.id,
+      position: waypointPositions[i],
+    })),
+    [connection.waypoints, waypointPositions]
+  );
+
+  // Compute label position on path
+  const labelPoint = useMemo(() => {
+    if (!connection.label) return null;
+    return getPointOnPath(curveType, start, end, connection.labelPosition ?? 0.5, {
+      cp1: isCurved ? cp1 : undefined,
+      cp2: isCurved ? cp2 : undefined,
+      startAnchor: sourceAnchor,
+      endAnchor: targetAnchor || 'left',
+      waypointPositions,
+    });
+  }, [connection.label, connection.labelPosition, curveType, start, end, cp1, cp2, isCurved, sourceAnchor, targetAnchor, waypointPositions]);
+
   // Control point drag hook (only active for curved connections)
   // Pass start/end points so the hook can calculate relative offsets when storing
   const controlPointDrag = useControlPointDrag({
@@ -79,6 +131,40 @@ export const Connection = memo(function Connection({
     endPoint: end,
     enabled: isCurved,
   });
+
+  // Label drag hook (only active when connection has a label)
+  const labelDrag = useLabelDrag({
+    connectionId: id,
+    enabled: !!connection.label && isSelected,
+  });
+
+  // Waypoint drag hook
+  const waypointDrag = useWaypointDrag({
+    connectionId: id,
+    enabled: isSelected && connection.waypoints.length > 0,
+  });
+
+  // Handle label double-click
+  const handleLabelDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onLabelDoubleClick?.();
+  }, [onLabelDoubleClick]);
+
+  // Handle waypoint double-click (removes waypoint)
+  const handleWaypointDoubleClick = useCallback((waypointId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onWaypointDoubleClick?.(waypointId);
+  }, [onWaypointDoubleClick]);
+
+  // Handle label mouse down - select connection AND start drag
+  const handleLabelMouseDown = useCallback((e: React.MouseEvent) => {
+    // First select the connection (same as clicking on the line)
+    onMouseDown(e);
+    // Then start the label drag if connection is selected
+    if (isSelected) {
+      labelDrag.handleDragStart(e);
+    }
+  }, [onMouseDown, isSelected, labelDrag]);
 
   // Determine colors based on state
   const lineColor = isSelected
@@ -161,6 +247,9 @@ export const Connection = memo(function Connection({
           endPoint={end}
           cp1={cp1}
           cp2={cp2}
+          startAnchor={sourceAnchor}
+          endAnchor={targetAnchor || 'left'}
+          waypointPositions={waypointPositions}
           lineColor={lineColor}
           lineWidth={lineWidth}
           strokeStyle={connection.strokeStyle}
@@ -171,6 +260,7 @@ export const Connection = memo(function Connection({
           onMouseDown={onMouseDown}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
+          onDoubleClick={onDoubleClick}
         />
       ) : isOrthogonal ? (
         <OrthogonalConnection
@@ -178,6 +268,7 @@ export const Connection = memo(function Connection({
           endPoint={end}
           startAnchor={sourceAnchor}
           endAnchor={targetAnchor || 'left'}
+          waypointPositions={waypointPositions}
           lineColor={lineColor}
           lineWidth={lineWidth}
           strokeStyle={connection.strokeStyle}
@@ -188,7 +279,35 @@ export const Connection = memo(function Connection({
           onMouseDown={onMouseDown}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
+          onDoubleClick={onDoubleClick}
         />
+      ) : waypointPositions.length > 0 ? (
+        // Straight connection with waypoints - render as polyline
+        <>
+          {/* Invisible wider hit area */}
+          <path
+            d={straightPathWithWaypoints(start, end, waypointPositions)}
+            stroke="transparent"
+            strokeWidth={Math.max(MIN_HIT_AREA_WIDTH, strokeWidth + 10)}
+            fill="none"
+            style={{ cursor: 'pointer' }}
+            onMouseDown={onMouseDown}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            onDoubleClick={onDoubleClick}
+          />
+          {/* Visible line */}
+          <path
+            d={straightPathWithWaypoints(start, end, waypointPositions)}
+            stroke={lineColor}
+            strokeWidth={lineWidth}
+            strokeDasharray={strokeDasharray}
+            fill="none"
+            markerEnd={targetArrow !== 'none' ? `url(#${endMarkerId})` : undefined}
+            markerStart={sourceArrow !== 'none' ? `url(#${startMarkerId})` : undefined}
+            pointerEvents="none"
+          />
+        </>
       ) : (
         <>
           {/* Invisible wider hit area for easier clicking */}
@@ -203,6 +322,7 @@ export const Connection = memo(function Connection({
             onMouseDown={onMouseDown}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
+            onDoubleClick={onDoubleClick}
           />
 
           {/* Visible line */}
@@ -255,6 +375,27 @@ export const Connection = memo(function Connection({
           cp1={cp1}
           cp2={cp2}
           onControlPointDragStart={controlPointDrag.handleDragStart}
+        />
+      )}
+
+      {/* Waypoint handles when selected */}
+      {isSelected && waypointHandles.length > 0 && (
+        <ConnectionWaypoints
+          waypoints={waypointHandles}
+          onDragStart={waypointDrag.handleDragStart}
+          onDoubleClick={handleWaypointDoubleClick}
+        />
+      )}
+
+      {/* Connection label */}
+      {connection.label && labelPoint && (
+        <ConnectionLabel
+          label={connection.label}
+          labelPoint={labelPoint}
+          style={connection.labelStyle}
+          isSelected={isSelected}
+          onDoubleClick={handleLabelDoubleClick}
+          onMouseDown={handleLabelMouseDown}
         />
       )}
     </g>

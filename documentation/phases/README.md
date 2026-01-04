@@ -26,7 +26,7 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P8.1.1 | Group Resize & Rotation | **Completed** | [requirements_p8.1.1.md](./requirements_p8.1.1.md) | [spec_p8.1.1.md](./spec_p8.1.1.md) | [todo_p8.1.1.md](./todo_p8.1.1.md) |
 | P8.3 | Curved Connections | **Completed** | [requirements_p8.3.md](./requirements_p8.3.md) | [spec_p8.3.md](./spec_p8.3.md) | [todo_p8.3.md](./todo_p8.3.md) |
 | P8.4 | Orthogonal Connections | **Completed** | [requirements_p8.4.md](./requirements_p8.4.md) | [spec_p8.4.md](./spec_p8.4.md) | [todo_p8.4.md](./todo_p8.4.md) |
-| P8.5 | Labels & Waypoints | Not Started | [requirements_p8.5.md](./requirements_p8.5.md) | [spec_p8.5.md](./spec_p8.5.md) | - |
+| P8.5 | Labels & Waypoints | **Completed** | [requirements_p8.5.md](./requirements_p8.5.md) | [spec_p8.5.md](./spec_p8.5.md) | [todo_p8.5.md](./todo_p8.5.md) |
 | P8.6 | Disconnect & Targeting | Not Started | [requirements_p8.6.md](./requirements_p8.6.md) | [spec_p8.6.md](./spec_p8.6.md) | - |
 | P9 | File Operations | Not Started | [requirements_p9.md](./requirements_p9.md) | [spec_p9.md](./spec_p9.md) | - |
 | P10 | Layers | Not Started | [requirements_p10.md](./requirements_p10.md) | [spec_p10.md](./spec_p10.md) | - |
@@ -264,3 +264,22 @@ Layers panel, create/delete/rename layers, visibility toggle, layer locking, reo
 - Arrow markers display correctly at endpoints
 - Miter joins for sharp 90° corners
 - 2 new files created, 3 files modified
+
+### P8.5 - Completed
+- Connection labels: Double-click connection to add "Label" text at midpoint
+- Inline label editing: Double-click label to edit text, Enter to confirm, Escape to cancel
+- Label positioning: Drag label along path to reposition (0-100% of path length)
+- Label styling: Font size, color, position slider in Property Panel
+- White background with rounded corners for readability
+- Clear label button in Property Panel
+- Waypoints: Double-click selected connection to add waypoint at click position
+- Waypoint handles: Diamond-shaped handles visible when connection is selected
+- Waypoint drag: Drag handles to reposition waypoints
+- Waypoint removal: Double-click waypoint handle to remove
+- Multiple waypoints supported on all connection types
+- Smart waypoint insertion: Inserted at correct position along path
+- Smooth curves through waypoints: Uses Catmull-Rom to Bezier conversion for curved connections
+- Orthogonal waypoints: Path recalculates through waypoint positions
+- Clear waypoints button in Property Panel
+- Full undo/redo support for all label and waypoint operations
+- 6 new files created, 11 files modified

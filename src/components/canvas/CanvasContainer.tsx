@@ -1,6 +1,10 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { Canvas } from './Canvas';
 import { TextEditOverlay } from './TextEditOverlay';
+import { LabelEditOverlay } from '@/components/connections/LabelEditOverlay';
+import { getConnectionEndpoints } from '@/lib/geometry/connection';
+import { getAbsoluteControlPoints } from '@/lib/geometry/bezier';
+import { waypointsToAbsolute } from '@/lib/geometry/pathUtils';
 import { useViewportStore } from '@/stores/viewportStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { useGroupStore } from '@/stores/groupStore';
@@ -45,6 +49,10 @@ export function CanvasContainer() {
   const activeTool = useInteractionStore((s) => s.activeTool);
   const manipulationState = useInteractionStore((s) => s.manipulationState);
   const isControlPointDragging = useInteractionStore((s) => s.isControlPointDragging);
+  const isWaypointDragging = useInteractionStore((s) => s.isWaypointDragging);
+  const isLabelDragging = useInteractionStore((s) => s.isLabelDragging);
+  const pendingConnectionInteraction = useInteractionStore((s) => s.pendingConnectionInteraction);
+  const setPendingConnectionInteraction = useInteractionStore((s) => s.setPendingConnectionInteraction);
   const setCursorCanvasPosition = useInteractionStore((s) => s.setCursorCanvasPosition);
 
   // Group store
@@ -56,6 +64,10 @@ export function CanvasContainer() {
 
   // Get shapes for hit testing
   const shapes = useDiagramStore((s) => s.shapes);
+  const connections = useDiagramStore((s) => s.connections);
+
+  // Get editing label connection
+  const editingLabelConnectionId = useInteractionStore((s) => s.editingLabelConnectionId);
 
   // Initialize hooks for shape creation, selection, connections, and keyboard shortcuts
   useKeyboardShortcuts();
@@ -189,8 +201,15 @@ export function CanvasContainer() {
         return;
       }
 
-      // Skip selection handling if we're dragging a control point on a curved connection
-      if (isControlPointDragging) {
+      // Skip selection handling if we're dragging connection elements
+      if (isControlPointDragging || isWaypointDragging || isLabelDragging) {
+        return;
+      }
+
+      // Skip selection handling if we just clicked on a connection
+      // (the connection already handled its own selection)
+      if (pendingConnectionInteraction) {
+        setPendingConnectionInteraction(false);
         return;
       }
 
@@ -207,7 +226,7 @@ export function CanvasContainer() {
         selection.handleCanvasClick(screenPoint);
       }
     },
-    [isPanning, endPan, shapeCreation, manipulationState, isControlPointDragging, activeTool, selection, selectionBox.isSelecting]
+    [isPanning, endPan, shapeCreation, manipulationState, isControlPointDragging, isWaypointDragging, isLabelDragging, pendingConnectionInteraction, setPendingConnectionInteraction, activeTool, selection, selectionBox.isSelecting]
   );
 
   // Global mouse up (in case mouse is released outside canvas while dragging)
@@ -381,6 +400,54 @@ export function CanvasContainer() {
             viewport={viewport}
           />
         )}
+
+        {/* Label editing overlay for connections */}
+        {editingLabelConnectionId && (() => {
+          const editingConnection = connections[editingLabelConnectionId];
+          if (!editingConnection || !editingConnection.label) return null;
+
+          const endpoints = getConnectionEndpoints(editingConnection, shapes);
+          if (!endpoints) return null;
+
+          const { start, end } = endpoints;
+          const isCurved = editingConnection.curveType === 'bezier';
+
+          // Calculate control points for curved connections
+          const { cp1, cp2 } = isCurved
+            ? getAbsoluteControlPoints(
+                editingConnection.controlPoints,
+                start,
+                end,
+                editingConnection.sourceAnchor,
+                editingConnection.targetAnchor || 'left'
+              )
+            : { cp1: start, cp2: end };
+
+          // Convert relative waypoints to absolute positions
+          const waypointPositions = waypointsToAbsolute(
+            editingConnection.waypoints,
+            start,
+            end
+          );
+
+          return (
+            <LabelEditOverlay
+              connectionId={editingLabelConnectionId}
+              label={editingConnection.label}
+              position={editingConnection.labelPosition ?? 0.5}
+              style={editingConnection.labelStyle}
+              curveType={editingConnection.curveType}
+              startPoint={start}
+              endPoint={end}
+              cp1={isCurved ? cp1 : undefined}
+              cp2={isCurved ? cp2 : undefined}
+              startAnchor={editingConnection.sourceAnchor}
+              endAnchor={editingConnection.targetAnchor || undefined}
+              waypointPositions={waypointPositions}
+              viewport={viewport}
+            />
+          );
+        })()}
 
         {/* Context menu */}
         <ContextMenu

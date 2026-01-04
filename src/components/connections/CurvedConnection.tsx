@@ -1,8 +1,8 @@
 import { memo, useMemo } from 'react';
 import type { Point } from '@/types/common';
-import type { ArrowType } from '@/types/connections';
+import type { ArrowType, AnchorPosition } from '@/types/connections';
 import type { StrokeStyle } from '@/types/shapes';
-import { bezierToSVGPath } from '@/lib/geometry/bezier';
+import { bezierToSVGPath, bezierWithWaypoints } from '@/lib/geometry/bezier';
 import { CONNECTION_DEFAULTS } from '@/lib/constants';
 
 interface CurvedConnectionProps {
@@ -10,6 +10,9 @@ interface CurvedConnectionProps {
   endPoint: Point;
   cp1: Point;  // Absolute control point 1 (pre-calculated)
   cp2: Point;  // Absolute control point 2 (pre-calculated)
+  startAnchor: AnchorPosition;
+  endAnchor: AnchorPosition;
+  waypointPositions?: Point[];
   lineColor: string;
   lineWidth: number;
   strokeStyle: StrokeStyle;
@@ -20,6 +23,7 @@ interface CurvedConnectionProps {
   onMouseDown: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
 }
 
 export const CurvedConnection = memo(function CurvedConnection({
@@ -27,6 +31,9 @@ export const CurvedConnection = memo(function CurvedConnection({
   endPoint,
   cp1,
   cp2,
+  startAnchor,
+  endAnchor,
+  waypointPositions,
   lineColor,
   lineWidth,
   strokeStyle,
@@ -37,10 +44,14 @@ export const CurvedConnection = memo(function CurvedConnection({
   onMouseDown,
   onMouseEnter,
   onMouseLeave,
+  onDoubleClick,
 }: CurvedConnectionProps) {
   const pathData = useMemo(() => {
+    if (waypointPositions && waypointPositions.length > 0) {
+      return bezierWithWaypoints(startPoint, startAnchor, endPoint, endAnchor, waypointPositions);
+    }
     return bezierToSVGPath({ start: startPoint, cp1, cp2, end: endPoint });
-  }, [startPoint, cp1, cp2, endPoint]);
+  }, [startPoint, cp1, cp2, endPoint, startAnchor, endAnchor, waypointPositions]);
 
   // Get stroke dasharray based on stroke style
   const strokeDasharray = useMemo(() => {
@@ -66,6 +77,7 @@ export const CurvedConnection = memo(function CurvedConnection({
         onMouseDown={onMouseDown}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        onDoubleClick={onDoubleClick}
       />
 
       {/* Visible bezier curve */}

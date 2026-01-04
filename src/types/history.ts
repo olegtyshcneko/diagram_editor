@@ -20,7 +20,13 @@ export type ActionType =
   | 'DISTRIBUTE'
   | 'Z_ORDER'
   | 'GROUP'
-  | 'UNGROUP';
+  | 'UNGROUP'
+  | 'ADD_LABEL'
+  | 'UPDATE_LABEL'
+  | 'REMOVE_LABEL'
+  | 'ADD_WAYPOINT'
+  | 'MOVE_WAYPOINT'
+  | 'REMOVE_WAYPOINT';
 
 /**
  * Shape modification delta - stores before/after state for a single shape
