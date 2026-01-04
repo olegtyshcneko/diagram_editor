@@ -16,6 +16,21 @@ export type ArrowType =
 // Connection curve types
 export type CurveType = 'straight' | 'orthogonal' | 'bezier';
 
+/**
+ * Control points for bezier curves.
+ *
+ * IMPORTANT: These are stored as RELATIVE OFFSETS from the connection endpoints,
+ * not absolute positions. This ensures curves maintain their shape when shapes move.
+ * - cp1 is the offset from the start (source anchor) point
+ * - cp2 is the offset from the end (target anchor) point
+ *
+ * To get absolute positions: absolute = endpoint + offset
+ */
+export interface ConnectionControlPoints {
+  cp1: Point; // Offset from source anchor point
+  cp2: Point; // Offset from target anchor point
+}
+
 // Connection interface
 export interface Connection {
   id: string;
@@ -39,6 +54,8 @@ export interface Connection {
 
   // Curve
   curveType: CurveType;
+  /** Manual control points for bezier (as relative offsets). Auto-calculated if undefined. */
+  controlPoints?: ConnectionControlPoints;
 
   // Label
   label?: string;

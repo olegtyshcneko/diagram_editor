@@ -17,6 +17,9 @@ interface InteractionState {
   // Shape manipulation state (move, resize, rotate)
   manipulationState: ManipulationState | null;
 
+  // Control point dragging state (for curved connections)
+  isControlPointDragging: boolean;
+
   // Cursor position for status bar
   cursorCanvasPosition: Point;
 
@@ -41,6 +44,9 @@ interface InteractionState {
   // Manipulation actions
   startManipulation: (state: ManipulationState) => void;
   endManipulation: () => void;
+
+  // Control point drag actions
+  setControlPointDragging: (isDragging: boolean) => void;
 
   // Text editing actions
   setEditingTextShapeId: (id: string | null) => void;
@@ -67,6 +73,8 @@ export const useInteractionStore = create<InteractionState>()((set) => ({
   creationState: null,
 
   manipulationState: null,
+
+  isControlPointDragging: false,
 
   cursorCanvasPosition: { x: 0, y: 0 },
 
@@ -105,6 +113,9 @@ export const useInteractionStore = create<InteractionState>()((set) => ({
   startManipulation: (manipState) => set({ manipulationState: manipState }),
 
   endManipulation: () => set({ manipulationState: null }),
+
+  // Control point drag actions
+  setControlPointDragging: (isDragging) => set({ isControlPointDragging: isDragging }),
 
   // Text editing actions
   setEditingTextShapeId: (id) => set({ editingTextShapeId: id }),

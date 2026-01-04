@@ -24,7 +24,7 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P8 | Organization (Parent) | Not Started | [requirements_p8.md](./requirements_p8.md) | [spec_p8.md](./spec_p8.md) | - |
 | P8.1 | Groups | **Completed** | [requirements_p8.1.md](./requirements_p8.1.md) | [spec_p8.1.md](./spec_p8.1.md) | [todo_p8.1.md](./todo_p8.1.md) |
 | P8.1.1 | Group Resize & Rotation | **Completed** | [requirements_p8.1.1.md](./requirements_p8.1.1.md) | [spec_p8.1.1.md](./spec_p8.1.1.md) | [todo_p8.1.1.md](./todo_p8.1.1.md) |
-| P8.3 | Curved Connections | Not Started | [requirements_p8.3.md](./requirements_p8.3.md) | [spec_p8.3.md](./spec_p8.3.md) | - |
+| P8.3 | Curved Connections | **Completed** | [requirements_p8.3.md](./requirements_p8.3.md) | [spec_p8.3.md](./spec_p8.3.md) | [todo_p8.3.md](./todo_p8.3.md) |
 | P8.4 | Orthogonal Connections | Not Started | [requirements_p8.4.md](./requirements_p8.4.md) | [spec_p8.4.md](./spec_p8.4.md) | - |
 | P8.5 | Labels & Waypoints | Not Started | [requirements_p8.5.md](./requirements_p8.5.md) | [spec_p8.5.md](./spec_p8.5.md) | - |
 | P8.6 | Disconnect & Targeting | Not Started | [requirements_p8.6.md](./requirements_p8.6.md) | [spec_p8.6.md](./spec_p8.6.md) | - |
@@ -236,3 +236,16 @@ Layers panel, create/delete/rename layers, visibility toggle, layer locking, reo
 - Group edit mode exit behavior changed: Click outside to exit (Escape no longer exits)
 - Full undo/redo support for group resize and rotation
 - 4 new files created, 5 files modified
+
+### P8.3 - Completed
+- Curved (Bezier) connections: Switch connection style in Property Panel (Straight/Curved)
+- Automatic control points: Calculated perpendicular to anchor direction, 40% of distance (capped at 100px)
+- Manual control point adjustment: Drag blue circle handles when curved connection is selected
+- Visual feedback: Dashed guide lines from anchors to control points
+- Real-time curve updates during drag
+- Control points persist on connection
+- Undo/redo support for control point changes
+- Bezier hit testing: Click anywhere on curve to select
+- Fixed selection deselection bug: Added isControlPointDragging flag to prevent canvas interference
+- Known issues added: KI-008 (no multi-selection for connections), KI-009 (start arrows partially hidden)
+- 5 new files created, 8 files modified

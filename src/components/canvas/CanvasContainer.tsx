@@ -17,6 +17,7 @@ import { findShapeAtPoint } from '@/lib/geometry/hitTest';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { CANVAS_DEFAULTS } from '@/lib/constants';
 import { ContextMenu } from '@/components/contextMenu';
+import { CanvasContainerContext } from '@/contexts/CanvasContainerContext';
 
 /**
  * Canvas container that handles all mouse, wheel, and keyboard events
@@ -42,6 +43,7 @@ export function CanvasContainer() {
   // Interaction store
   const activeTool = useInteractionStore((s) => s.activeTool);
   const manipulationState = useInteractionStore((s) => s.manipulationState);
+  const isControlPointDragging = useInteractionStore((s) => s.isControlPointDragging);
   const setCursorCanvasPosition = useInteractionStore((s) => s.setCursorCanvasPosition);
 
   // Group store
@@ -186,6 +188,11 @@ export function CanvasContainer() {
         return;
       }
 
+      // Skip selection handling if we're dragging a control point on a curved connection
+      if (isControlPointDragging) {
+        return;
+      }
+
       // Handle selection on mouse up (click) for select tool
       // Skip if selection box is active (it handles its own selection)
       if (activeTool === 'select' && e.button === 0 && !selectionBox.isSelecting) {
@@ -199,7 +206,7 @@ export function CanvasContainer() {
         selection.handleCanvasClick(screenPoint);
       }
     },
-    [isPanning, endPan, shapeCreation, manipulationState, activeTool, selection, selectionBox.isSelecting]
+    [isPanning, endPan, shapeCreation, manipulationState, isControlPointDragging, activeTool, selection, selectionBox.isSelecting]
   );
 
   // Global mouse up (in case mouse is released outside canvas while dragging)
@@ -315,74 +322,76 @@ export function CanvasContainer() {
   };
 
   return (
-    <div
-      ref={containerRef}
-      data-testid="canvas-container"
-      className="w-full h-full relative overflow-hidden"
-      style={{ cursor: getCursor() }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onContextMenu={(e) => {
-        e.preventDefault();
+    <CanvasContainerContext.Provider value={containerRef}>
+      <div
+        ref={containerRef}
+        data-testid="canvas-container"
+        className="w-full h-full relative overflow-hidden"
+        style={{ cursor: getCursor() }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onContextMenu={(e) => {
+          e.preventDefault();
 
-        // Determine context menu type based on what's under the cursor
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (!rect) return;
+          // Determine context menu type based on what's under the cursor
+          const rect = containerRef.current?.getBoundingClientRect();
+          if (!rect) return;
 
-        const screenPoint = {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        };
-        const canvasPoint = screenToCanvas(screenPoint, viewport, containerSize);
-        const shapesArray = Object.values(shapes);
-        const hitShape = findShapeAtPoint(canvasPoint, shapesArray);
+          const screenPoint = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          };
+          const canvasPoint = screenToCanvas(screenPoint, viewport, containerSize);
+          const shapesArray = Object.values(shapes);
+          const hitShape = findShapeAtPoint(canvasPoint, shapesArray);
 
-        if (hitShape) {
-          // Right-clicked on a shape
-          if (selectedShapeIds.length > 1 && selectedShapeIds.includes(hitShape.id)) {
-            // Multi-selection context menu
-            contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'multiSelect', hitShape.id);
+          if (hitShape) {
+            // Right-clicked on a shape
+            if (selectedShapeIds.length > 1 && selectedShapeIds.includes(hitShape.id)) {
+              // Multi-selection context menu
+              contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'multiSelect', hitShape.id);
+            } else {
+              // Single shape context menu
+              contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'shape', hitShape.id);
+            }
+          } else if (selectedConnectionIds.length > 0) {
+            // Connection context menu (if connections are selected)
+            contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'connection');
           } else {
-            // Single shape context menu
-            contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'shape', hitShape.id);
+            // Canvas context menu
+            contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'canvas');
           }
-        } else if (selectedConnectionIds.length > 0) {
-          // Connection context menu (if connections are selected)
-          contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'connection');
-        } else {
-          // Canvas context menu
-          contextMenu.openMenu({ x: e.clientX, y: e.clientY }, 'canvas');
-        }
-      }}
-    >
-      {containerSize.width > 0 && containerSize.height > 0 && (
-        <Canvas
-          ref={svgRef}
-          viewport={viewport}
-          containerSize={containerSize}
-          hoveredShapeId={hoveredShapeId}
-          onAnchorMouseDown={connectionCreation.handleAnchorMouseDown}
-          onShapeHover={setHoveredShapeId}
-          onShapeDoubleClick={textEditing.handleShapeDoubleClick}
-        />
-      )}
+        }}
+      >
+        {containerSize.width > 0 && containerSize.height > 0 && (
+          <Canvas
+            ref={svgRef}
+            viewport={viewport}
+            containerSize={containerSize}
+            hoveredShapeId={hoveredShapeId}
+            onAnchorMouseDown={connectionCreation.handleAnchorMouseDown}
+            onShapeHover={setHoveredShapeId}
+            onShapeDoubleClick={textEditing.handleShapeDoubleClick}
+          />
+        )}
 
-      {/* Text editing overlay (HTML positioned over SVG) */}
-      {textEditing.editingShape && (
-        <TextEditOverlay
-          shape={textEditing.editingShape}
-          viewport={viewport}
-        />
-      )}
+        {/* Text editing overlay (HTML positioned over SVG) */}
+        {textEditing.editingShape && (
+          <TextEditOverlay
+            shape={textEditing.editingShape}
+            viewport={viewport}
+          />
+        )}
 
-      {/* Context menu */}
-      <ContextMenu
-        isOpen={contextMenu.isOpen}
-        position={contextMenu.position}
-        items={contextMenu.menuItems}
-        onClose={contextMenu.closeMenu}
-      />
-    </div>
+        {/* Context menu */}
+        <ContextMenu
+          isOpen={contextMenu.isOpen}
+          position={contextMenu.position}
+          items={contextMenu.menuItems}
+          onClose={contextMenu.closeMenu}
+        />
+      </div>
+    </CanvasContainerContext.Provider>
   );
 }

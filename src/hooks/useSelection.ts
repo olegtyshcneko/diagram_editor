@@ -5,6 +5,7 @@ import { useInteractionStore } from '@/stores/interactionStore';
 import { findShapeAtPoint } from '@/lib/geometry/hitTest';
 import { screenToCanvas } from '@/lib/geometry/viewport';
 import { getConnectionEndpoints, isPointNearLine } from '@/lib/geometry/connection';
+import { getAbsoluteControlPoints, isPointNearBezier } from '@/lib/geometry/bezier';
 import type { Point, Size } from '@/types/common';
 
 interface UseSelectionProps {
@@ -37,7 +38,35 @@ export function useSelection({ containerSize }: UseSelectionProps) {
         // Scale threshold based on zoom for consistent hit detection
         const threshold = 8 / viewport.zoom;
 
-        if (isPointNearLine(canvasPoint, endpoints.start, endpoints.end, threshold)) {
+        let isNearConnection = false;
+
+        if (connection.curveType === 'bezier') {
+          // For curved connections, use bezier hit testing
+          // Use utility to convert relative offsets to absolute positions
+          const { cp1, cp2 } = getAbsoluteControlPoints(
+            connection.controlPoints,
+            endpoints.start,
+            endpoints.end,
+            connection.sourceAnchor,
+            connection.targetAnchor || 'left'
+          );
+
+          isNearConnection = isPointNearBezier(
+            canvasPoint,
+            { start: endpoints.start, cp1, cp2, end: endpoints.end },
+            threshold
+          );
+        } else {
+          // For straight connections, use line hit testing
+          isNearConnection = isPointNearLine(
+            canvasPoint,
+            endpoints.start,
+            endpoints.end,
+            threshold
+          );
+        }
+
+        if (isNearConnection) {
           setSelectedConnectionIds([id]);
           return;
         }

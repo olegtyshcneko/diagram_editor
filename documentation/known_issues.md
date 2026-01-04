@@ -47,38 +47,6 @@ Manually reposition shapes to avoid overlapping connections, or wait for Phase 8
 
 ---
 
-### KI-006: Context Menu Click Actions Not Working
-**Status:** Open
-**Priority:** Medium
-**Reported:** Phase 7
-
-**Description:**
-Right-click context menu appears correctly and displays all options (Cut, Copy, Paste, Duplicate, Bring to Front, Send Backward, Delete, etc.), but clicking on menu items does not execute the actions. The menu closes but no operation is performed.
-
-**Important Context:**
-- Context menu **WORKS** when right-clicking on empty canvas (canvas context menu)
-- Context menu **DOES NOT WORK** when right-clicking on a shape (shape context menu)
-- This suggests the issue is related to shape event handling or selection state when cursor is over a shape
-
-**Expected Behavior:**
-Clicking a context menu item should execute the corresponding action (e.g., clicking "Bring to Front" should bring the selected shape to front).
-
-**Note:**
-All keyboard shortcuts for these operations work correctly (Ctrl+], Ctrl+[, Ctrl+Shift+], Ctrl+Shift+[, Delete, Ctrl+C/V/X/D, etc.). The underlying functionality is implemented and working - only the context menu click handlers are not triggering.
-
-**Suggested Fix:**
-Debug focusing on shape-specific behavior:
-1. Check if shape's mouse event handlers interfere with menu clicks
-2. Verify selection state is correct when right-clicking on shape
-3. Check if shape SVG elements are capturing/blocking events above the context menu
-4. Examine z-index stacking - menu should be above shapes
-5. Check if `onMouseDown`/`onMouseUp` on shapes triggers during menu click
-
-**Workaround:**
-Use keyboard shortcuts instead of context menu clicks.
-
----
-
 ### KI-005: Ellipse Text Uses Rectangular Bounds
 **Status:** Open
 **Priority:** Low
@@ -100,7 +68,78 @@ Use "middle" vertical alignment for ellipses, or use smaller font sizes to keep 
 
 ---
 
+### KI-008: No Multi-Selection for Connections
+**Status:** Open
+**Priority:** Low
+**Reported:** Phase 8.3
+
+---
+
+### KI-009: Start Arrows Partially Hidden Under Shapes
+**Status:** Open
+**Priority:** Medium
+**Reported:** Phase 8.3
+
+**Description:**
+Start arrows (source arrows) on connections appear partially underneath the source shape, while end arrows (target arrows) display correctly outside the target shape. This makes start arrows less visible or completely hidden.
+
+**Expected Behavior:**
+Both start and end arrows should be fully visible outside their respective shapes, with the arrow tip at the anchor point and the arrow body extending outward along the connection line.
+
+**Root Cause:**
+The `refX` attribute on the start arrow marker is set to `1`, positioning the arrow very close to the line start. For end arrows, `refX` is set to `ARROW_SIZE - 1`, which positions them at the line end correctly. The asymmetry causes start arrows to overlap with the shape.
+
+**Current Code (Connection.tsx):**
+```typescript
+// End marker - refX positions arrow at line end
+refX={ARROW_SIZE - 1}
+
+// Start marker - refX too small, arrow overlaps shape
+refX={1}
+```
+
+**Suggested Fix:**
+Adjust the start marker's `refX` or the line start point to account for arrow size, similar to how end arrows work. May need to shorten the line at the start by the arrow size.
+
+**Workaround:**
+Use end arrows only, or accept partial visibility of start arrows.
+
+---
+
+### KI-008: No Multi-Selection for Connections
+
+**Description:**
+Connections can only be selected one at a time. Clicking a connection replaces the current selection rather than adding to it. There's no Shift+click or Ctrl+click support for selecting multiple connections.
+
+**Expected Behavior:**
+Users should be able to select multiple connections using Shift+click or Ctrl+click, similar to shape multi-selection.
+
+**Current Code:**
+```typescript
+// ConnectionLayer.tsx - always replaces selection
+setSelectedConnectionIds([connectionId]);
+```
+
+**Note:**
+The PropertyPanel already supports updating multiple connections (iterates over `selectedConnectionIds`), but the selection mechanism only allows single selection.
+
+**Workaround:**
+Select and modify connections one at a time.
+
+---
+
 ## Resolved Issues
+
+### KI-006: Context Menu Click Actions Not Working
+**Status:** Resolved (Phase 7.1)
+**Priority:** Medium
+**Reported:** Phase 7
+**Resolved:** Phase 7.1
+
+**Resolution:**
+Fixed context menu click handling for shapes. The issue was related to event propagation and selection state management when right-clicking on shapes.
+
+---
 
 ### KI-007: Resize and Rotation Not Tracked in Undo History
 **Status:** Resolved (Phase 7.1)

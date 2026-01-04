@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { ArrowType, Connection } from '@/types/connections';
+import type { ArrowType, Connection, CurveType } from '@/types/connections';
 
 interface ConnectionSectionProps {
   selectedConnectionIds: string[];
@@ -19,6 +19,12 @@ const ARROW_OPTIONS: { value: ArrowType; label: string }[] = [
   { value: 'none', label: 'None' },
   { value: 'arrow', label: 'Arrow' },
   { value: 'open-arrow', label: 'Open Arrow' },
+];
+
+const CURVE_TYPE_OPTIONS: { value: CurveType; label: string }[] = [
+  { value: 'straight', label: 'Straight' },
+  { value: 'bezier', label: 'Curved' },
+  // { value: 'orthogonal', label: 'Orthogonal' }, // Phase 8.4
 ];
 
 export function ConnectionSection({
@@ -64,6 +70,32 @@ export function ConnectionSection({
           className="w-20 h-8"
           suffix="px"
         />
+      </div>
+
+      {/* Connection Style */}
+      <div className="flex items-center gap-2">
+        <Label className="w-16 text-xs shrink-0">Style</Label>
+        <Select
+          value={firstConnection.curveType}
+          onValueChange={(value) =>
+            handleConnectionChange({
+              curveType: value as CurveType,
+              // Clear manual control points when switching to straight
+              controlPoints: value === 'straight' ? undefined : firstConnection.controlPoints,
+            })
+          }
+        >
+          <SelectTrigger className="flex-1 h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CURVE_TYPE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Source Arrow */}
