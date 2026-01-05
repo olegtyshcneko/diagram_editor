@@ -27,7 +27,7 @@ To start a phase, tell Claude: **"start phase N"** (e.g., "start phase 2")
 | P8.3 | Curved Connections | **Completed** | [requirements_p8.3.md](./requirements_p8.3.md) | [spec_p8.3.md](./spec_p8.3.md) | [todo_p8.3.md](./todo_p8.3.md) |
 | P8.4 | Orthogonal Connections | **Completed** | [requirements_p8.4.md](./requirements_p8.4.md) | [spec_p8.4.md](./spec_p8.4.md) | [todo_p8.4.md](./todo_p8.4.md) |
 | P8.5 | Labels & Waypoints | **Completed** | [requirements_p8.5.md](./requirements_p8.5.md) | [spec_p8.5.md](./spec_p8.5.md) | [todo_p8.5.md](./todo_p8.5.md) |
-| P8.6 | Disconnect & Targeting | Not Started | [requirements_p8.6.md](./requirements_p8.6.md) | [spec_p8.6.md](./spec_p8.6.md) | - |
+| P8.6 | Disconnect & Targeting | **Completed** | [requirements_p8.6.md](./requirements_p8.6.md) | [spec_p8.6.md](./spec_p8.6.md) | [todo_p8.6.md](./todo_p8.6.md) |
 | P9 | File Operations | Not Started | [requirements_p9.md](./requirements_p9.md) | [spec_p9.md](./spec_p9.md) | - |
 | P10 | Layers | Not Started | [requirements_p10.md](./requirements_p10.md) | [spec_p10.md](./spec_p10.md) | - |
 
@@ -283,3 +283,15 @@ Layers panel, create/delete/rename layers, visibility toggle, layer locking, reo
 - Clear waypoints button in Property Panel
 - Full undo/redo support for all label and waypoint operations
 - 6 new files created, 11 files modified
+
+### P8.6 - Completed
+- Disconnect endpoints: Drag endpoint handles to disconnect from shapes
+- Floating endpoint visual: Orange indicator with glow ring for disconnected endpoints
+- Reconnect to anchors: Drag floating endpoint near any shape to reconnect
+- Same shape reconnection: Can reconnect to different anchor on same shape
+- Shape-level targeting: Drop connection anywhere on shape body (not just anchors)
+- Best anchor auto-selection: Scoring based on distance (50%), approach direction (30%), opposite anchor bonus (20%)
+- Snap override: When close to specific anchor (25px), snaps directly to that anchor
+- Shape highlighting: Blue border and predicted anchor shown during targeting
+- Full undo/redo support for disconnect and reconnect operations
+- 3 new files created, 9 files modified

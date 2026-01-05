@@ -183,8 +183,15 @@ src/
 └── types/            # TypeScript type definitions
 
 documentation/
-└── phases/           # Phase specifications and requirements
+├── phases/           # Phase specifications and requirements
+├── known_issues.md   # Tracked bugs and issues
+└── improvements.md   # Planned enhancements and feature ideas
 ```
+
+## Documentation
+
+- **[Known Issues](documentation/known_issues.md)** - Bugs and issues to be fixed in future phases
+- **[Improvements](documentation/improvements.md)** - Planned enhancements and feature ideas
 
 ## License
 

@@ -2,8 +2,10 @@ import React from 'react';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { AnchorPoint } from './AnchorPoint';
+import { ShapeConnectionHighlight } from './ShapeConnectionHighlight';
 import { getAllAnchors } from '@/lib/geometry/connection';
 import type { AnchorPosition } from '@/types/connections';
+import type { Shape } from '@/types/shapes';
 
 interface AnchorPointsOverlayProps {
   hoveredShapeId: string | null;
@@ -12,11 +14,18 @@ interface AnchorPointsOverlayProps {
     anchor: AnchorPosition,
     e: React.MouseEvent
   ) => void;
+  // Shape-level targeting state (from useConnectionCreation)
+  targetingShape?: Shape | null;
+  targetingAnchor?: AnchorPosition | null;
+  targetingSnapped?: boolean;
 }
 
 export function AnchorPointsOverlay({
   hoveredShapeId,
   onAnchorMouseDown,
+  targetingShape,
+  targetingAnchor,
+  targetingSnapped = false,
 }: AnchorPointsOverlayProps) {
   const shapes = useDiagramStore((s) => s.shapes);
   const activeTool = useInteractionStore((s) => s.activeTool);
@@ -36,8 +45,24 @@ export function AnchorPointsOverlay({
     ? shapes[connectionCreationState.sourceShapeId]
     : null;
 
+  // Determine if we should show shape-level targeting highlight
+  // Show when creating a connection and hovering over a target shape
+  const showTargetingHighlight =
+    connectionCreationState &&
+    targetingShape &&
+    targetingShape.id !== connectionCreationState.sourceShapeId;
+
   return (
     <g className="anchor-points-overlay">
+      {/* Shape-level targeting highlight */}
+      {showTargetingHighlight && targetingShape && (
+        <ShapeConnectionHighlight
+          shape={targetingShape}
+          predictedAnchor={targetingAnchor ?? null}
+          isSnapped={targetingSnapped}
+        />
+      )}
+
       {/* Show anchors on source shape during connection creation */}
       {sourceShape &&
         connectionCreationState &&
@@ -50,8 +75,9 @@ export function AnchorPointsOverlay({
           />
         ))}
 
-      {/* Show anchors on hovered shape */}
-      {hoveredShape &&
+      {/* Show anchors on hovered shape (when no targeting highlight is shown) */}
+      {!showTargetingHighlight &&
+        hoveredShape &&
         hoveredShapeId &&
         hoveredShapeId !== connectionCreationState?.sourceShapeId &&
         getAllAnchors(hoveredShape).map(({ anchor, point }) => (

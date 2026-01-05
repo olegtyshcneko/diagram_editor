@@ -26,6 +26,9 @@ interface InteractionState {
   // Label dragging state
   isLabelDragging: boolean;
 
+  // Endpoint dragging state (for disconnect/reconnect)
+  isEndpointDragging: boolean;
+
   // Cursor position for status bar
   cursorCanvasPosition: Point;
 
@@ -62,6 +65,9 @@ interface InteractionState {
 
   // Label drag actions
   setLabelDragging: (isDragging: boolean) => void;
+
+  // Endpoint drag actions (for disconnect/reconnect)
+  setEndpointDragging: (isDragging: boolean) => void;
 
   // Connection click tracking (prevents canvas click handler from clearing selection)
   pendingConnectionInteraction: boolean;
@@ -101,6 +107,8 @@ export const useInteractionStore = create<InteractionState>()((set) => ({
   isWaypointDragging: false,
 
   isLabelDragging: false,
+
+  isEndpointDragging: false,
 
   pendingConnectionInteraction: false,
 
@@ -152,6 +160,9 @@ export const useInteractionStore = create<InteractionState>()((set) => ({
 
   // Label drag actions
   setLabelDragging: (isDragging) => set({ isLabelDragging: isDragging }),
+
+  // Endpoint drag actions
+  setEndpointDragging: (isDragging) => set({ isEndpointDragging: isDragging }),
 
   // Connection interaction tracking
   setPendingConnectionInteraction: (pending) => set({ pendingConnectionInteraction: pending }),

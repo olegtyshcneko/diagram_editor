@@ -14,6 +14,10 @@ import { ConnectionWaypoints } from './ConnectionWaypoints';
 import { useControlPointDrag } from '@/hooks/useControlPointDrag';
 import { useLabelDrag } from '@/hooks/useLabelDrag';
 import { useWaypointDrag } from '@/hooks/useWaypointDrag';
+import { useEndpointDrag } from '@/hooks/useEndpointDrag';
+
+// Orange color for floating endpoints
+const FLOATING_ENDPOINT_COLOR = '#F97316';
 
 interface ConnectionProps {
   connection: ConnectionType;
@@ -143,6 +147,23 @@ export const Connection = memo(function Connection({
     connectionId: id,
     enabled: isSelected && connection.waypoints.length > 0,
   });
+
+  // Endpoint drag hooks (for disconnect/reconnect)
+  const sourceEndpointDrag = useEndpointDrag({
+    connectionId: id,
+    endpoint: 'source',
+    enabled: isSelected,
+  });
+
+  const targetEndpointDrag = useEndpointDrag({
+    connectionId: id,
+    endpoint: 'target',
+    enabled: isSelected,
+  });
+
+  // Determine if endpoints are floating
+  const isSourceFloating = connection.sourceAttached === false;
+  const isTargetFloating = connection.targetAttached === false;
 
   // Handle label double-click
   const handleLabelDoubleClick = useCallback((e: React.MouseEvent) => {
@@ -346,24 +367,79 @@ export const Connection = memo(function Connection({
       {/* Endpoint handles when selected */}
       {isSelected && (
         <>
-          <circle
-            cx={start.x}
-            cy={start.y}
-            r={4}
-            fill="white"
-            stroke={COLORS.SELECTION}
-            strokeWidth={2}
-            pointerEvents="none"
-          />
-          <circle
-            cx={end.x}
-            cy={end.y}
-            r={4}
-            fill="white"
-            stroke={COLORS.SELECTION}
-            strokeWidth={2}
-            pointerEvents="none"
-          />
+          {/* Source endpoint */}
+          <g className="source-endpoint">
+            {/* Outer glow for floating endpoint */}
+            {isSourceFloating && (
+              <circle
+                cx={start.x}
+                cy={start.y}
+                r={12}
+                fill="none"
+                stroke={FLOATING_ENDPOINT_COLOR}
+                strokeWidth={2}
+                opacity={0.3}
+                pointerEvents="none"
+              />
+            )}
+            <circle
+              cx={start.x}
+              cy={start.y}
+              r={isSourceFloating ? 6 : 4}
+              fill={isSourceFloating ? FLOATING_ENDPOINT_COLOR : 'white'}
+              stroke={isSourceFloating ? FLOATING_ENDPOINT_COLOR : COLORS.SELECTION}
+              strokeWidth={2}
+              style={{ cursor: 'move' }}
+              onMouseDown={sourceEndpointDrag.handleDragStart}
+            />
+            {/* Center dot for floating */}
+            {isSourceFloating && (
+              <circle
+                cx={start.x}
+                cy={start.y}
+                r={2}
+                fill="white"
+                pointerEvents="none"
+              />
+            )}
+          </g>
+
+          {/* Target endpoint */}
+          <g className="target-endpoint">
+            {/* Outer glow for floating endpoint */}
+            {isTargetFloating && (
+              <circle
+                cx={end.x}
+                cy={end.y}
+                r={12}
+                fill="none"
+                stroke={FLOATING_ENDPOINT_COLOR}
+                strokeWidth={2}
+                opacity={0.3}
+                pointerEvents="none"
+              />
+            )}
+            <circle
+              cx={end.x}
+              cy={end.y}
+              r={isTargetFloating ? 6 : 4}
+              fill={isTargetFloating ? FLOATING_ENDPOINT_COLOR : 'white'}
+              stroke={isTargetFloating ? FLOATING_ENDPOINT_COLOR : COLORS.SELECTION}
+              strokeWidth={2}
+              style={{ cursor: 'move' }}
+              onMouseDown={targetEndpointDrag.handleDragStart}
+            />
+            {/* Center dot for floating */}
+            {isTargetFloating && (
+              <circle
+                cx={end.x}
+                cy={end.y}
+                r={2}
+                fill="white"
+                pointerEvents="none"
+              />
+            )}
+          </g>
         </>
       )}
 

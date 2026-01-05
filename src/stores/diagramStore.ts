@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { toast } from 'sonner';
 import type { Shape, ShapeType } from '@/types/shapes';
 import { DEFAULT_SHAPE } from '@/types/shapes';
-import type { Connection } from '@/types/connections';
+import type { Connection, AnchorPosition } from '@/types/connections';
 import { DEFAULT_CONNECTION } from '@/types/connections';
+import type { Point } from '@/types/common';
 import { generateId } from '@/lib/utils/id';
 import type { ClipboardData, ClipboardShape, ClipboardConnection } from '@/types/clipboard';
 import type { AlignmentType } from '@/types/selection';
@@ -89,6 +90,24 @@ interface DiagramState {
   sendToBack: () => void;
   bringForward: () => void;
   sendBackward: () => void;
+
+  // Connection endpoint actions (disconnect/reconnect)
+  disconnectEndpoint: (
+    connectionId: string,
+    endpoint: 'source' | 'target',
+    floatingPoint: Point
+  ) => void;
+  reconnectEndpoint: (
+    connectionId: string,
+    endpoint: 'source' | 'target',
+    shapeId: string,
+    anchor: AnchorPosition
+  ) => void;
+  updateFloatingEndpoint: (
+    connectionId: string,
+    endpoint: 'source' | 'target',
+    point: Point
+  ) => void;
 }
 
 export const useDiagramStore = create<DiagramState>()((set, get) => ({
@@ -433,6 +452,8 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
           targetShapeId: newTargetId,
           sourceAnchor: clipConn.sourceAnchor,
           targetAnchor: clipConn.targetAnchor,
+          sourceAttached: true,
+          targetAttached: true,
           waypoints: [],
           stroke: clipConn.stroke,
           strokeWidth: clipConn.strokeWidth,
@@ -672,6 +693,83 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
         }
       }
       return { shapes: newShapes, isDirty: true };
+    });
+  },
+
+  // Connection endpoint actions (disconnect/reconnect)
+  disconnectEndpoint: (connectionId, endpoint, floatingPoint) => {
+    set((state) => {
+      const connection = state.connections[connectionId];
+      if (!connection) return state;
+
+      const updates =
+        endpoint === 'source'
+          ? {
+              sourceAttached: false,
+              floatingSourcePoint: floatingPoint,
+            }
+          : {
+              targetAttached: false,
+              floatingTargetPoint: floatingPoint,
+            };
+
+      return {
+        connections: {
+          ...state.connections,
+          [connectionId]: { ...connection, ...updates },
+        },
+        isDirty: true,
+      };
+    });
+  },
+
+  reconnectEndpoint: (connectionId, endpoint, shapeId, anchor) => {
+    set((state) => {
+      const connection = state.connections[connectionId];
+      if (!connection) return state;
+
+      const updates =
+        endpoint === 'source'
+          ? {
+              sourceShapeId: shapeId,
+              sourceAnchor: anchor,
+              sourceAttached: true,
+              floatingSourcePoint: undefined,
+            }
+          : {
+              targetShapeId: shapeId,
+              targetAnchor: anchor,
+              targetAttached: true,
+              floatingTargetPoint: undefined,
+            };
+
+      return {
+        connections: {
+          ...state.connections,
+          [connectionId]: { ...connection, ...updates },
+        },
+        isDirty: true,
+      };
+    });
+  },
+
+  updateFloatingEndpoint: (connectionId, endpoint, point) => {
+    set((state) => {
+      const connection = state.connections[connectionId];
+      if (!connection) return state;
+
+      const updates =
+        endpoint === 'source'
+          ? { floatingSourcePoint: point }
+          : { floatingTargetPoint: point };
+
+      return {
+        connections: {
+          ...state.connections,
+          [connectionId]: { ...connection, ...updates },
+        },
+        isDirty: true,
+      };
     });
   },
 }));

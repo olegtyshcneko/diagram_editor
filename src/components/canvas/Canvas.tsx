@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { Viewport } from '@/types/viewport';
 import type { Size } from '@/types/common';
 import type { AnchorPosition } from '@/types/connections';
+import type { Shape } from '@/types/shapes';
 import { calculateViewBox } from '@/lib/geometry/viewport';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { usePreferencesStore } from '@/stores/preferencesStore';
@@ -25,6 +26,10 @@ interface CanvasProps {
   ) => void;
   onShapeHover: (shapeId: string | null) => void;
   onShapeDoubleClick: (shapeId: string) => void;
+  // Shape-level targeting props (from useConnectionCreation)
+  targetingShape?: Shape | null;
+  targetingAnchor?: AnchorPosition | null;
+  targetingSnapped?: boolean;
   children?: React.ReactNode;
 }
 
@@ -41,6 +46,9 @@ export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
       onAnchorMouseDown,
       onShapeHover,
       onShapeDoubleClick,
+      targetingShape,
+      targetingAnchor,
+      targetingSnapped,
       children,
     },
     ref
@@ -94,6 +102,9 @@ export const Canvas = forwardRef<SVGSVGElement, CanvasProps>(
         <AnchorPointsOverlay
           hoveredShapeId={hoveredShapeId}
           onAnchorMouseDown={onAnchorMouseDown}
+          targetingShape={targetingShape}
+          targetingAnchor={targetingAnchor}
+          targetingSnapped={targetingSnapped}
         />
 
         {/* Preview during shape creation */}

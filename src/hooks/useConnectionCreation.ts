@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useInteractionStore } from '@/stores/interactionStore';
 import { useViewportStore } from '@/stores/viewportStore';
@@ -7,8 +7,10 @@ import { EMPTY_SHAPE_DELTA } from '@/types/history';
 import { useGlobalDrag } from '@/lib/input';
 import type { AnchorPosition } from '@/types/connections';
 import type { Point } from '@/types/common';
+import type { Shape } from '@/types/shapes';
 import { findNearestAnchor, getAnchorPosition } from '@/lib/geometry/connection';
-import { CONNECTION_DEFAULTS } from '@/lib/constants';
+import { findShapeAtPoint } from '@/lib/geometry/hitTest';
+import { calculateBestAnchor, ANCHOR_SNAP_THRESHOLD } from '@/lib/geometry/anchorSelection';
 
 interface UseConnectionCreationProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -41,6 +43,11 @@ export function useConnectionCreation({
   );
 
   const viewport = useViewportStore((s) => s.viewport);
+
+  // State for shape-level targeting visual feedback
+  const [hoveredShape, setHoveredShape] = useState<Shape | null>(null);
+  const [predictedAnchor, setPredictedAnchor] = useState<AnchorPosition | null>(null);
+  const [isSnapped, setIsSnapped] = useState(false);
 
   // Convert screen coordinates to canvas coordinates
   const screenToCanvas = useCallback(
@@ -85,8 +92,30 @@ export function useConnectionCreation({
       if (!canvasPoint) return;
 
       updateConnectionCreation(canvasPoint);
+
+      // Track shape under cursor for shape-level targeting
+      const shapesArray = Object.values(shapes).filter(
+        (s) => s.id !== connectionCreationState.sourceShapeId
+      );
+      const targetShape = findShapeAtPoint(canvasPoint, shapesArray);
+
+      if (targetShape) {
+        const result = calculateBestAnchor(
+          targetShape,
+          canvasPoint,
+          connectionCreationState.sourcePoint,
+          connectionCreationState.sourceAnchor
+        );
+        setHoveredShape(targetShape);
+        setPredictedAnchor(result.anchor);
+        setIsSnapped(result.snapped);
+      } else {
+        setHoveredShape(null);
+        setPredictedAnchor(null);
+        setIsSnapped(false);
+      }
     },
-    [connectionCreationState, screenToCanvas, updateConnectionCreation]
+    [connectionCreationState, screenToCanvas, updateConnectionCreation, shapes]
   );
 
   // Handle mouse up to complete or cancel connection
@@ -96,6 +125,10 @@ export function useConnectionCreation({
 
       const canvasPoint = screenToCanvas(e.clientX, e.clientY);
       if (!canvasPoint) {
+        // Clear targeting state
+        setHoveredShape(null);
+        setPredictedAnchor(null);
+        setIsSnapped(false);
         endConnectionCreation();
         return;
       }
@@ -104,10 +137,10 @@ export function useConnectionCreation({
       let targetShapeId: string | null = null;
       let targetAnchor: AnchorPosition | null = null;
 
-      // Zoom-aware anchor snap threshold
-      const anchorThreshold = CONNECTION_DEFAULTS.ANCHOR_SNAP_THRESHOLD / viewport.zoom;
+      // Zoom-aware anchor snap threshold for direct anchor clicking
+      const anchorThreshold = ANCHOR_SNAP_THRESHOLD / viewport.zoom;
 
-      // Search all shapes for a nearby anchor
+      // First: Check for direct anchor snap (smaller threshold for precise clicks)
       for (const [id, shape] of Object.entries(shapes)) {
         // Don't connect to self
         if (id === connectionCreationState.sourceShapeId) continue;
@@ -117,6 +150,26 @@ export function useConnectionCreation({
           targetShapeId = id;
           targetAnchor = nearestAnchor.anchor;
           break;
+        }
+      }
+
+      // Second: If no direct anchor snap, check for shape body hit (shape-level targeting)
+      if (!targetShapeId) {
+        const shapesArray = Object.values(shapes).filter(
+          (s) => s.id !== connectionCreationState.sourceShapeId
+        );
+        const targetShape = findShapeAtPoint(canvasPoint, shapesArray);
+
+        if (targetShape) {
+          // Use best anchor calculation for shape-level targeting
+          const result = calculateBestAnchor(
+            targetShape,
+            canvasPoint,
+            connectionCreationState.sourcePoint,
+            connectionCreationState.sourceAnchor
+          );
+          targetShapeId = targetShape.id;
+          targetAnchor = result.anchor;
         }
       }
 
@@ -155,6 +208,10 @@ export function useConnectionCreation({
         }
       }
 
+      // Clear targeting state
+      setHoveredShape(null);
+      setPredictedAnchor(null);
+      setIsSnapped(false);
       endConnectionCreation();
     },
     [connectionCreationState, screenToCanvas, shapes, addConnection, endConnectionCreation, viewport.zoom, pushEntry, selectedShapeIds]
@@ -183,5 +240,9 @@ export function useConnectionCreation({
   return {
     handleAnchorMouseDown,
     isCreatingConnection,
+    // Shape-level targeting state for visual feedback
+    hoveredShape,
+    predictedAnchor,
+    isSnapped,
   };
 }

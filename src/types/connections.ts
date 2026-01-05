@@ -74,6 +74,12 @@ export interface Connection {
   targetAnchor: AnchorPosition | null;
   targetPoint?: Point;
 
+  // Endpoint attachment state (for disconnect/reconnect feature)
+  sourceAttached: boolean; // false if source endpoint is floating
+  targetAttached: boolean; // false if target endpoint is floating
+  floatingSourcePoint?: Point; // Position when source is detached
+  floatingTargetPoint?: Point; // Position when target is detached
+
   // Waypoints for custom routing (with IDs for stable drag operations)
   waypoints: Waypoint[];
 
@@ -109,6 +115,8 @@ export interface ConnectionCreationState {
 export const DEFAULT_CONNECTION: Omit<Connection, 'id' | 'sourceShapeId' | 'sourceAnchor'> = {
   targetShapeId: null,
   targetAnchor: null,
+  sourceAttached: true,
+  targetAttached: true,
   waypoints: [],
   stroke: '#000000',
   strokeWidth: 2,

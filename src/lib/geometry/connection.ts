@@ -93,33 +93,50 @@ export function findNearestAnchor(
 }
 
 /**
- * Calculate connection line endpoints from source and target shapes
+ * Calculate connection line endpoints from source and target shapes.
+ * Handles floating endpoints when sourceAttached or targetAttached is false.
  */
 export function getConnectionEndpoints(
   connection: Connection,
   shapes: Record<string, Shape>
 ): { start: Point; end: Point } | null {
-  const sourceShape = shapes[connection.sourceShapeId];
+  let start: Point | null = null;
+  let end: Point | null = null;
 
-  if (!sourceShape) return null;
-
-  const start = getAnchorPosition(sourceShape, connection.sourceAnchor);
-
-  // If there's a target shape, use its anchor
-  if (connection.targetShapeId && connection.targetAnchor) {
-    const targetShape = shapes[connection.targetShapeId];
-    if (!targetShape) return null;
-
-    const end = getAnchorPosition(targetShape, connection.targetAnchor);
-    return { start, end };
+  // Calculate start point
+  if (connection.sourceAttached !== false) {
+    // Source is attached to a shape
+    const sourceShape = shapes[connection.sourceShapeId];
+    if (!sourceShape) return null;
+    start = getAnchorPosition(sourceShape, connection.sourceAnchor);
+  } else if (connection.floatingSourcePoint) {
+    // Source is floating
+    start = connection.floatingSourcePoint;
+  } else {
+    return null;
   }
 
-  // If there's a floating target point
-  if (connection.targetPoint) {
-    return { start, end: connection.targetPoint };
+  // Calculate end point
+  if (connection.targetAttached !== false) {
+    // Target is attached to a shape
+    if (connection.targetShapeId && connection.targetAnchor) {
+      const targetShape = shapes[connection.targetShapeId];
+      if (!targetShape) return null;
+      end = getAnchorPosition(targetShape, connection.targetAnchor);
+    } else if (connection.targetPoint) {
+      // Legacy: floating target point (for backwards compatibility)
+      end = connection.targetPoint;
+    } else {
+      return null;
+    }
+  } else if (connection.floatingTargetPoint) {
+    // Target is floating
+    end = connection.floatingTargetPoint;
+  } else {
+    return null;
   }
 
-  return null;
+  return { start, end };
 }
 
 /**

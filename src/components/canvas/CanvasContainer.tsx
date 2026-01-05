@@ -390,6 +390,9 @@ export function CanvasContainer() {
             onAnchorMouseDown={connectionCreation.handleAnchorMouseDown}
             onShapeHover={setHoveredShapeId}
             onShapeDoubleClick={textEditing.handleShapeDoubleClick}
+            targetingShape={connectionCreation.hoveredShape}
+            targetingAnchor={connectionCreation.predictedAnchor}
+            targetingSnapped={connectionCreation.isSnapped}
           />
         )}
 
